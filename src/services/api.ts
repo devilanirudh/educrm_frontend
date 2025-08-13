@@ -5,9 +5,22 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiResponse, ApiError } from '../types/api';
 
+// API Configuration
+const USE_PRODUCTION_API = true; // Set to false for local development
+
+const PRODUCTION_API_URL = 'https://educrmbackend-production.up.railway.app/api/v1';
+const LOCAL_API_URL = 'http://localhost:8000/api/v1';
+
+const getBaseURL = (): string => {
+  if (USE_PRODUCTION_API) {
+    return PRODUCTION_API_URL;
+  }
+  return process.env.REACT_APP_API_URL || LOCAL_API_URL;
+};
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',
+  baseURL: getBaseURL(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -43,10 +56,10 @@ apiClient.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
-          const response = await axios.post(
-            `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1'}/auth/refresh`,
-            { refresh_token: refreshToken }
-          );
+                  const response = await axios.post(
+          `${getBaseURL()}/auth/refresh`,
+          { refresh_token: refreshToken }
+        );
 
           const { access_token } = response.data;
           localStorage.setItem('accessToken', access_token);
