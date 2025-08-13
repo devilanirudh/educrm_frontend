@@ -1,0 +1,1 @@
+import React from 'react'; import { Typography, Box } from '@mui/material'; const TransportPage: React.FC = () => ( <Box> <Typography variant="h4" gutterBottom> Transport Page </Typography> <Typography> This is the transport page. Implementation coming soon... </Typography> </Box> ); export default TransportPage;

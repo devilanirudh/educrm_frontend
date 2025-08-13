@@ -1,0 +1,1 @@
+import React from 'react'; import { Typography, Box } from '@mui/material'; const CmsPage: React.FC = () => ( <Box> <Typography variant="h4" gutterBottom> Cms Page </Typography> <Typography> This is the cms page. Implementation coming soon... </Typography> </Box> ); export default CmsPage;

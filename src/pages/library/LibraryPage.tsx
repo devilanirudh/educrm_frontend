@@ -1,0 +1,1 @@
+import React from 'react'; import { Typography, Box } from '@mui/material'; const LibraryPage: React.FC = () => ( <Box> <Typography variant="h4" gutterBottom> Library Page </Typography> <Typography> This is the library page. Implementation coming soon... </Typography> </Box> ); export default LibraryPage;
