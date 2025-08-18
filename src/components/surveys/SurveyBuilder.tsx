@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { SurveyCreatorComponent, SurveyCreator } from "survey-creator-react";
 import "survey-creator-core/survey-creator-core.css";
-import "survey-core/themes/defaultV2.css";
+import "survey-core/survey.min.css";
+import { StylesManager } from "survey-core";
+
+// Apply theme globally
+StylesManager.applyTheme("defaultV2");
 
 interface SurveyBuilderProps {
   initialJson: any;

@@ -1,7 +1,10 @@
 import React from "react";
-import { Model } from "survey-core";
+import { Model, StylesManager } from "survey-core";
 import { Survey } from "survey-react-ui";
-import "survey-core/themes/defaultV2.css";
+import "survey-core/survey.min.css";
+
+// Apply theme globally
+StylesManager.applyTheme("defaultV2");
 
 interface SurveyViewerProps {
   formJson: any;
