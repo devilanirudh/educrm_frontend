@@ -1,22 +1,14 @@
 import React from "react";
-import { Model, StylesManager } from "survey-core";
+import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
-import "survey-core/survey.min.css";
-
-// Apply theme globally
-StylesManager.applyTheme("defaultV2");
+import "survey-core/defaultV2.min.css";
 
 interface SurveyViewerProps {
-  formJson: any;
+  json: any;
 }
 
-const SurveyViewer: React.FC<SurveyViewerProps> = ({ formJson }) => {
-  const survey = new Model(formJson);
-
-  survey.onComplete.add((sender) => {
-    console.log("Form Results:", sender.data);
-    alert("Form submitted: " + JSON.stringify(sender.data));
-  });
+const SurveyViewer: React.FC<SurveyViewerProps> = ({ json }) => {
+  const survey = new Model(json);
 
   return <Survey model={survey} />;
 };

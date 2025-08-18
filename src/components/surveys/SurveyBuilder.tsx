@@ -1,38 +1,31 @@
-import React, { useState } from "react";
-import { SurveyCreatorComponent, SurveyCreator } from "survey-creator-react";
+import React, { useEffect, useRef } from "react";
+import { SurveyCreator } from "survey-creator-react";
+import "survey-core/defaultV2.min.css";
 import "survey-creator-core/survey-creator-core.css";
-import "survey-core/survey.min.css";
-import { StylesManager } from "survey-core";
-
-// Apply theme globally
-StylesManager.applyTheme("defaultV2");
 
 interface SurveyBuilderProps {
-  initialJson: any;
   onSave: (json: any) => void;
 }
 
-const creatorOptions = {
-    showLogicTab: true,
-};
+const SurveyBuilder: React.FC<SurveyBuilderProps> = ({ onSave }) => {
+  const creatorRef = useRef<any>(null);
 
-const SurveyBuilder: React.FC<SurveyBuilderProps> = ({ initialJson, onSave }) => {
-  const [creator] = useState(() => {
-    const c = new SurveyCreator(creatorOptions);
-    c.JSON = initialJson;
-    c.saveSurveyFunc = (saveNo: number, callback: (saveNo: number, success: boolean) => void) => {
-      onSave(c.JSON);
-      console.log("Saved Survey JSON:", c.JSON);
-      callback(saveNo, true); // Indicate success
+  useEffect(() => {
+    const creator = new SurveyCreator({
+      showLogicTab: true,
+      showTranslationTab: true,
+    });
+
+    creator.saveSurveyFunc = (saveNo: number, callback: (no: number, success: boolean) => void) => {
+      onSave(creator.JSON);
+      callback(saveNo, true);
     };
-    return c;
-  });
 
-  return (
-    <div style={{ height: "calc(100vh - 220px)", width: "100%" }}>
-      <SurveyCreatorComponent creator={creator} />
-    </div>
-  );
+    creatorRef.current = creator;
+    creator.render("surveyCreatorContainer");
+  }, [onSave]);
+
+  return <div id="surveyCreatorContainer" style={{ height: "100vh" }} />;
 };
 
 export default SurveyBuilder;
