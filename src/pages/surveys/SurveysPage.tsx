@@ -48,7 +48,7 @@ const SurveysPage: React.FC = () => {
         {mode === 'builder' ? (
           <SurveyBuilder initialJson={formJson} onSave={handleSave} />
         ) : (
-          <SurveyViewer formJson={formJson} />
+          <SurveyViewer json={formJson} />
         )}
       </Paper>
     </Box>

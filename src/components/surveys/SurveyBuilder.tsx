@@ -1,13 +1,14 @@
 import React, { useEffect, useRef } from "react";
 import { SurveyCreator } from "survey-creator-react";
-import "survey-core/defaultV2.min.css";
+import "survey-core/defaultV2.css";
 import "survey-creator-core/survey-creator-core.css";
 
 interface SurveyBuilderProps {
+  initialJson: any;
   onSave: (json: any) => void;
 }
 
-const SurveyBuilder: React.FC<SurveyBuilderProps> = ({ onSave }) => {
+const SurveyBuilder: React.FC<SurveyBuilderProps> = ({ initialJson, onSave }) => {
   const creatorRef = useRef<any>(null);
 
   useEffect(() => {
@@ -16,6 +17,8 @@ const SurveyBuilder: React.FC<SurveyBuilderProps> = ({ onSave }) => {
       showTranslationTab: true,
     });
 
+    creator.JSON = initialJson;
+
     creator.saveSurveyFunc = (saveNo: number, callback: (no: number, success: boolean) => void) => {
       onSave(creator.JSON);
       callback(saveNo, true);
@@ -23,7 +26,7 @@ const SurveyBuilder: React.FC<SurveyBuilderProps> = ({ onSave }) => {
 
     creatorRef.current = creator;
     creator.render("surveyCreatorContainer");
-  }, [onSave]);
+  }, [initialJson, onSave]);
 
   return <div id="surveyCreatorContainer" style={{ height: "100vh" }} />;
 };
