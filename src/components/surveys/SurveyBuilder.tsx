@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { SurveyCreatorComponent, SurveyCreator } from "survey-creator-react";
 import "survey-creator-core/survey-creator-core.css";
-import "survey-core/defaultV2.css";
+import "survey-core/themes/defaultV2.css";
 
 interface SurveyBuilderProps {
   initialJson: any;

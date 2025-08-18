@@ -1,7 +1,7 @@
 import React from "react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
-import "survey-core/defaultV2.css";
+import "survey-core/themes/defaultV2.css";
 
 interface SurveyViewerProps {
   formJson: any;
