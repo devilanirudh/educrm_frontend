@@ -9,7 +9,7 @@ import { ApiResponse, ApiError } from '../types/api';
 const USE_PRODUCTION_API = true; // Set to false for local development
 
 const PRODUCTION_API_URL = 'https://educrmbackend-production.up.railway.app/api/v1';
-const LOCAL_API_URL = 'http://localhost:8000/api/v1';
+const LOCAL_API_URL = 'http://localhost:3000/api/v1';
 
 // Ensure HTTPS for production
 const getBaseURL = (): string => {
