@@ -44,6 +44,7 @@ const CMSPage = React.lazy(() => import('./pages/cms/CMSPage'));
 const CRMPage = React.lazy(() => import('./pages/crm/CRMPage'));
 const ReportsPage = React.lazy(() => import('./pages/reports/ReportsPage'));
 const CommunicationPage = React.lazy(() => import('./pages/communication/CommunicationPage'));
+const SurveysPage = React.lazy(() => import('./pages/surveys/SurveysPage'));
 
 function App() {
   const dispatch = useAppDispatch();
@@ -118,6 +119,7 @@ function App() {
                       {/* CMS & CRM */}
                       <Route path="/cms/*" element={<CMSPage />} />
                       <Route path="/crm/*" element={<CRMPage />} />
+                      <Route path="/surveys/*" element={<SurveysPage />} />
 
                       {/* Reports & Communication */}
                       <Route path="/reports/*" element={<ReportsPage />} />
