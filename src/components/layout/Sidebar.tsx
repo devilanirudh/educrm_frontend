@@ -97,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
         children: [
           { text: 'CMS', icon: <Web />, path: '/cms' },
           { text: 'CRM', icon: <Contacts />, path: '/crm' },
-          { text: 'Surveys', icon: <Poll />, path: '/surveys' },
+          { text: 'Form Builder', icon: <Poll />, path: '/form-builder' },
           { text: 'Reports', icon: <Analytics />, path: '/reports' },
           { text: 'Communication', icon: <Chat />, path: '/communication' },
         ],

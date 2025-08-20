@@ -1,38 +1,27 @@
 import React, { useState } from 'react';
+import type { FormSchema, FormField, OptionsField } from '../../types/schema';
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  FormControl,
-  FormLabel,
-  FormHelperText,
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControlLabel,
-  RadioGroup,
-  Radio,
-  InputLabel,
-  Paper,
+  Box, Typography, TextField, Button, Checkbox, FormControlLabel, Select, MenuItem,
+  RadioGroup, Radio, FormControl, FormLabel, FormHelperText, InputLabel
 } from '@mui/material';
-import type { FormSchema, FormField, OptionsField } from '../../types/formBuilder';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
-interface FormRendererProps {
-  schema: FormSchema;
-  onSubmit: (data: Record<string, any>) => void;
-}
-
-const RenderField: React.FC<{
+interface FieldViewProps {
   field: FormField;
   value: any;
-  error: string | undefined;
+  error?: string;
   onChange: (value: any) => void;
-}> = ({ field, value, error, onChange }) => {
+}
+
+const FieldView: React.FC<FieldViewProps> = ({ field, value, error, onChange }) => {
   const commonProps = {
+    id: field.id,
     name: field.name,
     label: field.label,
     required: field.required,
+    placeholder: field.placeholder,
     helperText: error || field.helpText,
     error: !!error,
     fullWidth: true,
@@ -42,104 +31,53 @@ const RenderField: React.FC<{
     case 'text':
     case 'email':
     case 'number':
-      return (
-        <TextField
-          {...commonProps}
-          type={field.type}
-          placeholder={field.placeholder}
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      );
+      return <TextField type={field.type} {...commonProps} value={value ?? ''} onChange={e => onChange(e.target.value)} />;
     case 'textarea':
-      return (
-        <TextField
-          {...commonProps}
-          multiline
-          rows={4}
-          placeholder={field.placeholder}
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      );
+      return <TextField multiline rows={4} {...commonProps} value={value ?? ''} onChange={e => onChange(e.target.value)} />;
+    case 'checkbox':
+      return <FormControlLabel control={<Checkbox checked={!!value} onChange={e => onChange(e.target.checked)} name={field.name} />} label={field.label} />;
     case 'date':
       return (
-        <TextField
-          {...commonProps}
-          type="date"
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-      );
-    case 'checkbox':
-      return (
-        <FormControl error={!!error} required={field.required}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                name={field.name}
-                checked={!!value}
-                onChange={(e) => onChange(e.target.checked)}
-              />
-            }
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <DatePicker
             label={field.label}
+            value={value ? new Date(value) : null}
+            onChange={(newValue) => onChange(newValue ? newValue.toISOString() : null)}
+            slotProps={{
+              textField: {
+                ...commonProps,
+                required: field.required,
+              }
+            }}
           />
+        </LocalizationProvider>
+      );
+    case 'file':
+      return (
+        <FormControl fullWidth error={!!error}>
+          <FormLabel required={field.required} sx={{ mb: 1 }}>{field.label}</FormLabel>
+          <TextField type="file" onChange={e => onChange((e.target as HTMLInputElement).files?.[0] ?? null)} />
           <FormHelperText>{error || field.helpText}</FormHelperText>
         </FormControl>
       );
     case 'select':
-      const selectField = field as OptionsField;
       return (
-        <FormControl fullWidth error={!!error} required={field.required}>
-          <InputLabel>{field.label}</InputLabel>
-          <Select
-            name={field.name}
-            value={value ?? ''}
-            label={field.label}
-            onChange={(e) => onChange(e.target.value)}
-          >
-            {selectField.options.map((opt) => (
-              <MenuItem key={opt.id} value={opt.value}>
-                {opt.label}
-              </MenuItem>
-            ))}
+        <FormControl fullWidth error={!!error}>
+          <InputLabel id={`${field.id}-label`}>{field.label}</InputLabel>
+          <Select labelId={`${field.id}-label`} {...commonProps} label={field.label} value={value ?? ''} onChange={e => onChange(e.target.value)}>
+            <MenuItem value=""><em>Select...</em></MenuItem>
+            {(field as OptionsField).options.map(o => <MenuItem key={o.id} value={o.value}>{o.label}</MenuItem>)}
           </Select>
           <FormHelperText>{error || field.helpText}</FormHelperText>
         </FormControl>
       );
     case 'radio':
-      const radioField = field as OptionsField;
       return (
-        <FormControl error={!!error} required={field.required}>
-          <FormLabel>{field.label}</FormLabel>
-          <RadioGroup
-            name={field.name}
-            value={value ?? ''}
-            onChange={(e) => onChange(e.target.value)}
-          >
-            {radioField.options.map((opt) => (
-              <FormControlLabel
-                key={opt.id}
-                value={opt.value}
-                control={<Radio />}
-                label={opt.label}
-              />
-            ))}
+        <FormControl component="fieldset" error={!!error}>
+          <FormLabel component="legend">{field.label}</FormLabel>
+          <RadioGroup name={field.name} value={value ?? ''} onChange={e => onChange(e.target.value)}>
+            {(field as OptionsField).options.map(o => <FormControlLabel key={o.id} value={o.value} control={<Radio />} label={o.label} />)}
           </RadioGroup>
-          <FormHelperText>{error || field.helpText}</FormHelperText>
-        </FormControl>
-      );
-    case 'file':
-      return (
-        <FormControl error={!!error} required={field.required}>
-          <FormLabel>{field.label}</FormLabel>
-          <TextField
-            type="file"
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              onChange(e.target.files ? e.target.files[0] : null)
-            }
-          />
           <FormHelperText>{error || field.helpText}</FormHelperText>
         </FormControl>
       );
@@ -148,17 +86,22 @@ const RenderField: React.FC<{
   }
 };
 
-const FormRenderer: React.FC<FormRendererProps> = ({ schema, onSubmit }) => {
+interface FormRendererProps {
+  schema: FormSchema;
+  onSubmit: (data: Record<string, any>) => void;
+}
+
+export default function FormRenderer({ schema, onSubmit }: FormRendererProps) {
   const [data, setData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const validate = () => {
+  const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    schema.fields.forEach((field) => {
-      if (field.required && !data[field.name]) {
+    for (const field of schema.fields) {
+      if (field.required && (data[field.name] === undefined || data[field.name] === '' || data[field.name] === null || data[field.name] === false)) {
         newErrors[field.name] = `${field.label} is required.`;
       }
-    });
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -171,9 +114,9 @@ const FormRenderer: React.FC<FormRendererProps> = ({ schema, onSubmit }) => {
   };
 
   const handleChange = (fieldName: string, value: any) => {
-    setData((prev) => ({ ...prev, [fieldName]: value }));
+    setData(prev => ({ ...prev, [fieldName]: value }));
     if (errors[fieldName]) {
-      setErrors((prev) => {
+      setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[fieldName];
         return newErrors;
@@ -182,33 +125,23 @@ const FormRenderer: React.FC<FormRendererProps> = ({ schema, onSubmit }) => {
   };
 
   return (
-    <Paper sx={{ p: 4, maxWidth: 700, mx: 'auto' }}>
-      <Box component="form" onSubmit={handleSubmit} noValidate>
-        <Typography variant="h4" gutterBottom>
-          {schema.title}
-        </Typography>
-        {schema.description && (
-          <Typography paragraph color="text.secondary">
-            {schema.description}
-          </Typography>
-        )}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3 }}>
-          {schema.fields.map((field) => (
-            <RenderField
-              key={field.id}
-              field={field}
-              value={data[field.name]}
-              error={errors[field.name]}
-              onChange={(value) => handleChange(field.name, value)}
-            />
-          ))}
-          <Button type="submit" variant="contained" size="large" sx={{ mt: 2 }}>
-            Submit
-          </Button>
-        </Box>
+    <Box component="form" onSubmit={handleSubmit} noValidate sx={{ maxWidth: 'md', mx: 'auto', p: 3 }}>
+      <Typography variant="h4" gutterBottom>{schema.title}</Typography>
+      {schema.description && <Typography paragraph color="text.secondary">{schema.description}</Typography>}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3 }}>
+        {schema.fields.map(field => (
+          <FieldView
+            key={field.id}
+            field={field}
+            value={data[field.name]}
+            error={errors[field.name]}
+            onChange={value => handleChange(field.name, value)}
+          />
+        ))}
+        <Button type="submit" variant="contained" size="large" sx={{ mt: 2, alignSelf: 'flex-start' }}>
+          Submit
+        </Button>
       </Box>
-    </Paper>
+    </Box>
   );
-};
-
-export default FormRenderer;
+}

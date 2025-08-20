@@ -1,50 +1,51 @@
 import React from 'react';
-import { Box, TextField, Button, Typography } from '@mui/material';
-import { Save } from '@mui/icons-material';
 import { useFormBuilderStore } from '../../store/useFormBuilderStore';
+import { Box, TextField, Button, Paper } from '@mui/material';
+import { Save as SaveIcon } from '@mui/icons-material';
 
 interface TopBarProps {
   onSave: () => void;
+  isSaving: boolean;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ onSave }) => {
+export default function TopBar({ onSave, isSaving }: TopBarProps) {
   const { schema, setMeta } = useFormBuilderStore();
 
   return (
-    <Box
+    <Paper
+      elevation={0}
+      square
       sx={{
-        p: 2,
-        borderBottom: 1,
-        borderColor: 'divider',
-        backgroundColor: 'background.paper',
         display: 'flex',
         alignItems: 'center',
         gap: 2,
+        p: 2,
+        borderBottom: 1,
+        borderColor: 'divider',
       }}
     >
-      <Typography variant="h6" sx={{ mr: 2 }}>
-        Form Builder
-      </Typography>
       <TextField
         label="Form Title"
         value={schema.title}
-        onChange={(e) => setMeta({ title: e.target.value })}
-        variant="outlined"
+        onChange={e => setMeta({ title: e.target.value })}
         size="small"
+        sx={{ width: 300 }}
       />
       <TextField
-        label="Form Description"
+        label="Description"
         value={schema.description ?? ''}
-        onChange={(e) => setMeta({ description: e.target.value })}
-        variant="outlined"
+        onChange={e => setMeta({ description: e.target.value })}
         size="small"
-        sx={{ flex: 1 }}
+        fullWidth
       />
-      <Button variant="contained" startIcon={<Save />} onClick={onSave}>
-        Save Form
+      <Button
+        variant="contained"
+        startIcon={<SaveIcon />}
+        onClick={onSave}
+        disabled={isSaving}
+      >
+        {isSaving ? 'Saving...' : 'Save'}
       </Button>
-    </Box>
+    </Paper>
   );
-};
-
-export default TopBar;
+}
