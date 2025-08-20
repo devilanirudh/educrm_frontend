@@ -1,26 +1,68 @@
 import React, { useState } from 'react';
-import type { FormSchema, FormField, OptionsField } from '../../types/schema';
+import type { FormSchema, FormField, OptionsField, ImageField, ValidationRules } from '../../types/schema';
 import {
   Box, Typography, TextField, Button, Checkbox, FormControlLabel, Select, MenuItem,
-  RadioGroup, Radio, FormControl, FormLabel, FormHelperText, InputLabel
+  RadioGroup, Radio, FormControl, FormLabel, FormHelperText, InputLabel, Avatar
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import ImageCropper from './ImageCropper';
+import { PhotoCamera } from '@mui/icons-material';
 
-interface FieldViewProps {
-  field: FormField;
-  value: any;
-  error?: string;
-  onChange: (value: any) => void;
-}
+const ImageFieldView: React.FC<{ field: ImageField, value: any, error?: string, onChange: (value: any) => void }> = ({ field, value, error, onChange }) => {
+  const [isCropperOpen, setCropperOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | undefined>();
+  const [croppedImage, setCroppedImage] = useState<string | undefined>(value);
 
-const FieldView: React.FC<FieldViewProps> = ({ field, value, error, onChange }) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.addEventListener('load', () => setImageToCrop(reader.result as string));
+      reader.readAsDataURL(file);
+      setCropperOpen(true);
+    }
+  };
+
+  const handleSaveCrop = (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    setCroppedImage(url);
+    onChange(blob); // Pass the blob to the form state
+  };
+
+  return (
+    <FormControl fullWidth error={!!error}>
+      <FormLabel required={field.validations?.required} sx={{ mb: 1 }}>{field.label}</FormLabel>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Avatar src={croppedImage} sx={{ width: 80, height: 80 }} variant="rounded">
+          <PhotoCamera />
+        </Avatar>
+        <Button variant="outlined" component="label">
+          Upload Image
+          <input type="file" accept="image/*" hidden onChange={handleFileChange} />
+        </Button>
+      </Box>
+      <FormHelperText>{error || field.helpText}</FormHelperText>
+      {imageToCrop && (
+        <ImageCropper
+          open={isCropperOpen}
+          onClose={() => setCropperOpen(false)}
+          onSave={handleSaveCrop}
+          imageSrc={imageToCrop}
+          aspect={field.aspectRatio}
+        />
+      )}
+    </FormControl>
+  );
+};
+
+const FieldView: React.FC<{ field: FormField, value: any, error?: string, onChange: (value: any) => void }> = ({ field, value, error, onChange }) => {
   const commonProps = {
     id: field.id,
     name: field.name,
     label: field.label,
-    required: field.required,
+    required: field.validations?.required,
     placeholder: field.placeholder,
     helperText: error || field.helpText,
     error: !!error,
@@ -43,23 +85,20 @@ const FieldView: React.FC<FieldViewProps> = ({ field, value, error, onChange }) 
             label={field.label}
             value={value ? new Date(value) : null}
             onChange={(newValue) => onChange(newValue ? newValue.toISOString() : null)}
-            slotProps={{
-              textField: {
-                ...commonProps,
-                required: field.required,
-              }
-            }}
+            slotProps={{ textField: { ...commonProps, required: field.validations?.required } }}
           />
         </LocalizationProvider>
       );
     case 'file':
       return (
         <FormControl fullWidth error={!!error}>
-          <FormLabel required={field.required} sx={{ mb: 1 }}>{field.label}</FormLabel>
+          <FormLabel required={field.validations?.required} sx={{ mb: 1 }}>{field.label}</FormLabel>
           <TextField type="file" onChange={e => onChange((e.target as HTMLInputElement).files?.[0] ?? null)} />
           <FormHelperText>{error || field.helpText}</FormHelperText>
         </FormControl>
       );
+    case 'image':
+      return <ImageFieldView field={field as ImageField} value={value} error={error} onChange={onChange} />;
     case 'select':
       return (
         <FormControl fullWidth error={!!error}>
@@ -98,8 +137,19 @@ export default function FormRenderer({ schema, onSubmit }: FormRendererProps) {
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     for (const field of schema.fields) {
-      if (field.required && (data[field.name] === undefined || data[field.name] === '' || data[field.name] === null || data[field.name] === false)) {
+      const rules = field.validations || {};
+      const value = data[field.name];
+      if (rules.required && (value === undefined || value === '' || value === null || value === false)) {
         newErrors[field.name] = `${field.label} is required.`;
+        continue;
+      }
+      if (rules.minLength && typeof value === 'string' && value.length < rules.minLength) {
+        newErrors[field.name] = `${field.label} must be at least ${rules.minLength} characters.`;
+        continue;
+      }
+      if (rules.maxLength && typeof value === 'string' && value.length > rules.maxLength) {
+        newErrors[field.name] = `${field.label} must be no more than ${rules.maxLength} characters.`;
+        continue;
       }
     }
     setErrors(newErrors);

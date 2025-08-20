@@ -13,6 +13,7 @@ const PALETTE: { type: FieldType; label: string }[] = [
   { type: 'checkbox', label: 'Checkbox' },
   { type: 'date', label: 'Date Picker' },
   { type: 'file', label: 'File Upload' },
+  { type: 'image', label: 'Image Upload' },
 ];
 
 export default function FieldPalette() {
@@ -22,7 +23,7 @@ export default function FieldPalette() {
     <Paper
       elevation={0}
       square
-      sx={{ p: 2, borderRight: 1, borderColor: 'divider', width: 240, overflowY: 'auto' }}
+      sx={{ p: 2, borderRight: 1, borderColor: 'divider', width: 240, overflowY: 'auto', height: '100%' }}
     >
       <Typography variant="h6" sx={{ mb: 1 }}>
         Fields

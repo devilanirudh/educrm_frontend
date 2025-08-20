@@ -1,13 +1,21 @@
-export type FieldType = "text" | "email" | "number" | "textarea" | "select" | "checkbox" | "radio" | "date" | "file";
+export type FieldType = "text" | "email" | "number" | "textarea" | "select" | "checkbox" | "radio" | "date" | "file" | "image";
+
+export interface ValidationRules {
+  required?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  minValue?: number;
+  maxValue?: number;
+}
 
 export interface BaseField {
   id: string;
   type: FieldType;
   label: string;
   name: string;
-  required?: boolean;
   placeholder?: string;
   helpText?: string;
+  validations?: ValidationRules;
 }
 
 export interface OptionsField extends BaseField {
@@ -15,7 +23,12 @@ export interface OptionsField extends BaseField {
   options: { id: string; label: string; value: string }[];
 }
 
-export type FormField = BaseField | OptionsField;
+export interface ImageField extends BaseField {
+  type: "image";
+  aspectRatio?: number;
+}
+
+export type FormField = BaseField | OptionsField | ImageField;
 
 export interface FormSchema {
   id: string;

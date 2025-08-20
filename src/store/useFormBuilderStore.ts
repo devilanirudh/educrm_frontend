@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
-import type { FormSchema, FormField, FieldType, OptionsField } from "../types/schema";
+import type { FormSchema, FormField, FieldType, OptionsField, ImageField } from "../types/schema";
 import { arrayMove } from "@dnd-kit/sortable";
 
 type State = {
@@ -22,14 +22,14 @@ const defaultSchema: FormSchema = {
   title: "Student Registration Form",
   description: "A default form to collect basic student information.",
   fields: [
-    { id: nanoid(), type: "text", label: "Full Name", name: "fullName", required: true, placeholder: "e.g. John Doe" },
-    { id: nanoid(), type: "email", label: "Email Address", name: "email", required: true, placeholder: "e.g. john.doe@school.edu" },
+    { id: nanoid(), type: "text", label: "Full Name", name: "fullName", validations: { required: true }, placeholder: "e.g. John Doe" },
+    { id: nanoid(), type: "email", label: "Email Address", name: "email", validations: { required: true }, placeholder: "e.g. john.doe@school.edu" },
     { 
       id: nanoid(), 
       type: "select", 
       label: "Current Grade", 
       name: "grade", 
-      required: true,
+      validations: { required: true },
       options: [
         { id: nanoid(), label: "Grade 9", value: "9" },
         { id: nanoid(), label: "Grade 10", value: "10" },
@@ -37,7 +37,7 @@ const defaultSchema: FormSchema = {
         { id: nanoid(), label: "Grade 12", value: "12" },
       ]
     } as OptionsField,
-    { id: nanoid(), type: "date", label: "Date of Birth", name: "dob", required: true },
+    { id: nanoid(), type: "date", label: "Date of Birth", name: "dob", validations: { required: true } },
   ]
 };
 
@@ -46,11 +46,20 @@ export const useFormBuilderStore = create<State & Actions>((set) => ({
   selectedId: undefined,
 
   addField: (type) => {
-    const base = { id: nanoid(), type, label: "Untitled Field", name: `field_${nanoid(5)}` };
-    const field: FormField =
-      type === "select" || type === "radio"
-        ? { ...base, options: [{ id: nanoid(), label: "Option 1", value: "option1" }] } as OptionsField
-        : base;
+    const base = { id: nanoid(), type, label: "Untitled Field", name: `field_${nanoid(5)}`, validations: {} };
+    let field: FormField;
+
+    switch (type) {
+      case "select":
+      case "radio":
+        field = { ...base, options: [{ id: nanoid(), label: "Option 1", value: "option1" }] } as OptionsField;
+        break;
+      case "image":
+        field = { ...base, aspectRatio: 1 } as ImageField;
+        break;
+      default:
+        field = base;
+    }
 
     set(state => ({ 
       schema: { ...state.schema, fields: [...state.schema.fields, field] }, 
