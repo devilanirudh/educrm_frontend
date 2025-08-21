@@ -18,6 +18,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { Assignment, AssignmentCreateRequest, AssignmentUpdateRequest } from '../../services/assignments';
 import { classesService, Class } from '../../services/classes';
+import { teachersService } from '../../services/teachers'; // Assuming subjects are related to teachers or classes
 
 interface AssignmentFormProps {
   open: boolean;
@@ -25,16 +26,6 @@ interface AssignmentFormProps {
   onSave: (data: AssignmentCreateRequest | AssignmentUpdateRequest) => void;
   initialData?: Assignment | null;
   isSaving: boolean;
-}
-
-// A specific type for our form's state
-interface AssignmentFormValues {
-  title: string;
-  class_id: number | '';
-  subject_id: number | '';
-  due_date: Date | null;
-  description: string;
-  attachment?: File | null;
 }
 
 const validationSchema = Yup.object({
@@ -63,36 +54,18 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ open, onClose, onSave, 
     }
   }, [open]);
 
-  const formik = useFormik<AssignmentFormValues>({
+  const formik = useFormik<AssignmentCreateRequest | AssignmentUpdateRequest>({
     initialValues: {
-      title: initialData?.title || '',
-      class_id: initialData?.class_id || '',
-      subject_id: initialData?.subject_id || '',
-      due_date: initialData?.due_date ? new Date(initialData.due_date) : null,
-      description: initialData?.description || '',
-      attachment: null,
+      title: initialData?.title || undefined,
+      class_id: initialData?.class_id || undefined,
+      subject_id: initialData?.subject_id || undefined,
+      due_date: initialData?.due_date || undefined,
+      description: initialData?.description || undefined,
     },
     validationSchema,
     enableReinitialize: true,
     onSubmit: (values) => {
-      // Transform form values to match API request structure
-      const submissionData: Partial<AssignmentCreateRequest | AssignmentUpdateRequest> = {
-        ...values,
-        class_id: values.class_id as number,
-        subject_id: values.subject_id as number,
-        due_date: values.due_date!.toISOString(), // Not null because of validation
-      };
-
-      if (!initialData) {
-        // Add status for new assignments
-        (submissionData as AssignmentCreateRequest).status = 'published';
-      }
-
-      if (!values.attachment) {
-        delete submissionData.attachment;
-      }
-
-      onSave(submissionData as AssignmentCreateRequest | AssignmentUpdateRequest);
+      onSave(values);
     },
   });
 
@@ -143,14 +116,13 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ open, onClose, onSave, 
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <DatePicker
                 label="Due Date"
-                value={formik.values.due_date}
+                value={formik.values.due_date ? new Date(formik.values.due_date) : null}
                 onChange={(date) => formik.setFieldValue('due_date', date)}
                 slotProps={{
                   textField: {
-                    name: 'due_date',
                     onBlur: formik.handleBlur,
                     error: formik.touched.due_date && Boolean(formik.errors.due_date),
-                    helperText: formik.touched.due_date && (formik.errors.due_date as string),
+                    helperText: formik.touched.due_date && formik.errors.due_date,
                   },
                 }}
               />
@@ -172,7 +144,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ open, onClose, onSave, 
               <input type="file" hidden onChange={(e) => formik.setFieldValue('attachment', e.currentTarget.files?.[0])} />
             </Button>
             {formik.values.attachment && (
-              <Chip label={formik.values.attachment.name} onDelete={() => formik.setFieldValue('attachment', null)} />
+              <Chip label={(formik.values.attachment as File).name} onDelete={() => formik.setFieldValue('attachment', null)} />
             )}
           </Box>
         </DialogContent>
