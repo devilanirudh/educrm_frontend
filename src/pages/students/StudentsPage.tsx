@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -18,11 +19,6 @@ import {
   Avatar,
   CircularProgress,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Grid,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -34,6 +30,7 @@ import {
 import { studentsService, Student } from '../../services/students';
 
 const StudentsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,23 +38,6 @@ const StudentsPage: React.FC = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [formData, setFormData] = useState({
-    user_data: {
-      first_name: '',
-      last_name: '',
-      email: '',
-      password: '',
-      phone: '',
-      date_of_birth: '',
-      gender: '',
-    },
-    admission_number: '',
-    admission_date: new Date().toISOString().split('T')[0],
-    academic_year: '2024-2025',
-    admission_type: 'regular',
-  });
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const loadStudents = async () => {
     try {
@@ -102,74 +82,7 @@ const StudentsPage: React.FC = () => {
   };
 
   const handleAddStudent = () => {
-    setFormData({
-      user_data: {
-        first_name: '',
-        last_name: '',
-        email: '',
-        password: '',
-        phone: '',
-        date_of_birth: '',
-        gender: '',
-      },
-      admission_number: '',
-      admission_date: new Date().toISOString().split('T')[0],
-      academic_year: '2024-2025',
-      admission_type: 'regular',
-    });
-    setFormErrors({});
-    setOpenAddDialog(true);
-  };
-
-  const handleCloseDialog = () => {
-    setOpenAddDialog(false);
-    setFormData({
-      user_data: {
-        first_name: '',
-        last_name: '',
-        email: '',
-        password: '',
-        phone: '',
-        date_of_birth: '',
-        gender: '',
-      },
-      admission_number: '',
-      admission_date: new Date().toISOString().split('T')[0],
-      academic_year: '2024-2025',
-      admission_type: 'regular',
-    });
-    setFormErrors({});
-  };
-
-  const handleSubmit = async () => {
-    try {
-      setFormErrors({});
-      await studentsService.createStudent(formData as any);
-      setOpenAddDialog(false);
-      loadStudents();
-      // Reset form
-      setFormData({
-        user_data: {
-          first_name: '',
-          last_name: '',
-          email: '',
-          password: '',
-          phone: '',
-          date_of_birth: '',
-          gender: '',
-        },
-        admission_number: '',
-        admission_date: new Date().toISOString().split('T')[0],
-        academic_year: '2024-2025',
-        admission_type: 'regular',
-      });
-    } catch (err: any) {
-      if (err.errors) {
-        setFormErrors(err.errors);
-      } else {
-        setError(err.message || 'Failed to create student');
-      }
-    }
+    navigate('/form-builder');
   };
 
   if (loading && students.length === 0) {
@@ -277,10 +190,10 @@ const StudentsPage: React.FC = () => {
                     />
                   </TableCell>
                   <TableCell>
-                    <IconButton size="small">
+                    <IconButton size="small" aria-label={`Edit student ${student.user.first_name}`}>
                       <EditIcon />
                     </IconButton>
-                    <IconButton size="small">
+                    <IconButton size="small" aria-label={`Delete student ${student.user.first_name}`}>
                       <DeleteIcon />
                     </IconButton>
                   </TableCell>
@@ -309,171 +222,6 @@ const StudentsPage: React.FC = () => {
           onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Paper>
-
-      {/* Add Student Dialog */}
-      <Dialog
-        open={openAddDialog}
-        onClose={handleCloseDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Add New Student</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            {/* Basic Information */}
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Basic Information
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="First Name"
-                value={formData.user_data.first_name}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  user_data: { ...prev.user_data, first_name: e.target.value }
-                }))}
-                error={!!formErrors['user_data.first_name']}
-                helperText={formErrors['user_data.first_name']}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Last Name"
-                value={formData.user_data.last_name}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  user_data: { ...prev.user_data, last_name: e.target.value }
-                }))}
-                error={!!formErrors['user_data.last_name']}
-                helperText={formErrors['user_data.last_name']}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={formData.user_data.email}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  user_data: { ...prev.user_data, email: e.target.value }
-                }))}
-                error={!!formErrors['user_data.email']}
-                helperText={formErrors['user_data.email']}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Password"
-                type="password"
-                value={formData.user_data.password}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  user_data: { ...prev.user_data, password: e.target.value }
-                }))}
-                error={!!formErrors['user_data.password']}
-                helperText={formErrors['user_data.password']}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Phone"
-                value={formData.user_data.phone}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  user_data: { ...prev.user_data, phone: e.target.value }
-                }))}
-                error={!!formErrors['user_data.phone']}
-                helperText={formErrors['user_data.phone']}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Date of Birth"
-                type="date"
-                value={formData.user_data.date_of_birth}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  user_data: { ...prev.user_data, date_of_birth: e.target.value }
-                }))}
-                InputLabelProps={{ shrink: true }}
-                error={!!formErrors['user_data.date_of_birth']}
-                helperText={formErrors['user_data.date_of_birth']}
-              />
-            </Grid>
-
-            {/* Academic Information */}
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                Academic Information
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Admission Number"
-                value={formData.admission_number}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  admission_number: e.target.value
-                }))}
-                error={!!formErrors.admission_number}
-                helperText={formErrors.admission_number}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Admission Date"
-                type="date"
-                value={formData.admission_date}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  admission_date: e.target.value
-                }))}
-                InputLabelProps={{ shrink: true }}
-                error={!!formErrors.admission_date}
-                helperText={formErrors.admission_date}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Academic Year"
-                value={formData.academic_year}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  academic_year: e.target.value
-                }))}
-                error={!!formErrors.academic_year}
-                helperText={formErrors.academic_year}
-                required
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} variant="contained">
-            Create Student
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };
