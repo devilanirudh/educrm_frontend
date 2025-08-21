@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -14,7 +15,6 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  Chip,
   CircularProgress,
   Alert,
 } from '@mui/material';
@@ -24,11 +24,11 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Clear as ClearIcon,
-  Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import { classesService, Class } from '../../services/classes';
 
 const ClassesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +75,10 @@ const ClassesPage: React.FC = () => {
     setPage(0);
   };
 
+  const handleAddClass = () => {
+    navigate('/form-builder');
+  };
+
   if (loading && classes.length === 0) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -89,7 +93,7 @@ const ClassesPage: React.FC = () => {
         <Typography variant="h4" gutterBottom>
           Classes Management
         </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => alert('Add Class functionality coming soon!')}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddClass}>
           Add Class
         </Button>
       </Box>
@@ -130,12 +134,9 @@ const ClassesPage: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Class Name</TableCell>
-                <TableCell>Grade Level</TableCell>
-                <TableCell>Academic Year</TableCell>
+                <TableCell>Class ID</TableCell>
                 <TableCell>Class Teacher</TableCell>
-                <TableCell>Students</TableCell>
-                <TableCell>Room</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell>Total Students</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -143,15 +144,12 @@ const ClassesPage: React.FC = () => {
               {classes.map((classItem) => (
                 <TableRow key={classItem.id} hover>
                   <TableCell>
-                    <Box>
-                      <Typography variant="subtitle2">
-                        {classItem.name}
-                        {classItem.section && ` - ${classItem.section}`}
-                      </Typography>
-                    </Box>
+                    <Typography variant="subtitle2">
+                      {classItem.name}
+                      {classItem.section && ` - Section ${classItem.section}`}
+                    </Typography>
                   </TableCell>
-                  <TableCell>{classItem.grade_level}</TableCell>
-                  <TableCell>{classItem.academic_year}</TableCell>
+                  <TableCell>{classItem.id}</TableCell>
                   <TableCell>
                     {classItem.class_teacher ? (
                       <Typography variant="body2">
@@ -162,23 +160,11 @@ const ClassesPage: React.FC = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">
+                    <Typography variant="body2" align="center">
                       {classItem.students?.length || 0}
-                      {classItem.capacity && ` / ${classItem.capacity}`}
                     </Typography>
                   </TableCell>
-                  <TableCell>{classItem.room_number || '-'}</TableCell>
                   <TableCell>
-                    <Chip
-                      label={classItem.is_active ? 'Active' : 'Inactive'}
-                      color={classItem.is_active ? 'success' : 'error'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton size="small" title="View Timetable">
-                      <ScheduleIcon />
-                    </IconButton>
                     <IconButton size="small" title="Edit">
                       <EditIcon />
                     </IconButton>
@@ -190,7 +176,7 @@ const ClassesPage: React.FC = () => {
               ))}
               {classes.length === 0 && !loading && (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={5} align="center">
                     <Typography variant="body2" color="text.secondary">
                       No classes found
                     </Typography>
