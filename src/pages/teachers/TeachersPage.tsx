@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -29,6 +30,7 @@ import {
 import { teachersService, Teacher } from '../../services/teachers';
 
 const TeachersPage: React.FC = () => {
+  const navigate = useNavigate();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +77,10 @@ const TeachersPage: React.FC = () => {
     setPage(0);
   };
 
+  const handleAddTeacher = () => {
+    navigate('/form-builder');
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
@@ -93,7 +99,7 @@ const TeachersPage: React.FC = () => {
         <Typography variant="h4" gutterBottom>
           Teachers Management
         </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => alert('Add Teacher functionality coming soon!')}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddTeacher}>
           Add Teacher
         </Button>
       </Box>
@@ -134,10 +140,9 @@ const TeachersPage: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Teacher</TableCell>
-                <TableCell>Employee ID</TableCell>
-                <TableCell>Department</TableCell>
-                <TableCell>Designation</TableCell>
-                <TableCell>Hire Date</TableCell>
+                <TableCell>Teacher ID</TableCell>
+                <TableCell>Subject(s)</TableCell>
+                <TableCell>Joining Date</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -161,8 +166,20 @@ const TeachersPage: React.FC = () => {
                     </Box>
                   </TableCell>
                   <TableCell>{teacher.employee_id}</TableCell>
-                  <TableCell>{teacher.department || '-'}</TableCell>
-                  <TableCell>{teacher.designation || '-'}</TableCell>
+                  <TableCell>
+                    {teacher.subjects && teacher.subjects.length > 0 ? (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {teacher.subjects.slice(0, 2).map((subject) => (
+                          <Chip key={subject.id} label={subject.name} size="small" />
+                        ))}
+                        {teacher.subjects.length > 2 && (
+                          <Chip label={`+${teacher.subjects.length - 2}`} size="small" />
+                        )}
+                      </Box>
+                    ) : (
+                      <Typography color="text.secondary">-</Typography>
+                    )}
+                  </TableCell>
                   <TableCell>{formatDate(teacher.hire_date)}</TableCell>
                   <TableCell>
                     <Chip
@@ -183,7 +200,7 @@ const TeachersPage: React.FC = () => {
               ))}
               {teachers.length === 0 && !loading && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={6} align="center">
                     <Typography variant="body2" color="text.secondary">
                       No teachers found
                     </Typography>
