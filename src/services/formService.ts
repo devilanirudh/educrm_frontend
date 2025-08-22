@@ -1,36 +1,34 @@
-import axios from 'axios';
+import api from './api';
 import { FormSchema } from '../types/form';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
 
 const formService = {
   async createForm(schema: FormSchema) {
-    const response = await axios.post(`${API_URL}/forms`, schema);
+    const response = await api.post('/forms', schema);
     return response.data;
   },
 
   async getForm(formKey: string) {
-    const response = await axios.get(`${API_URL}/forms/${formKey}`);
+    const response = await api.get(`/forms/${formKey}`);
     return response.data;
   },
 
   async getDefaultForm(entityType: string) {
-    const response = await axios.get(`${API_URL}/forms/default/${entityType}`);
+    const response = await api.get(`/forms/default/${entityType}`);
     return response.data;
   },
 
   async updateForm(formKey: string, schema: FormSchema) {
-    const response = await axios.put(`${API_URL}/forms/${formKey}`, schema);
+    const response = await api.put(`/forms/${formKey}`, schema);
     return response.data;
   },
 
   async deleteForm(formKey: string) {
-    const response = await axios.delete(`${API_URL}/forms/${formKey}`);
+    const response = await api.delete(`/forms/${formKey}`);
     return response.data;
   },
 
   async getForms() {
-    const response = await axios.get(`${API_URL}/forms`);
+    const response = await api.get('/forms');
     return response.data;
   },
 
@@ -52,7 +50,7 @@ const formService = {
   },
 
   async submitForm(formId: number, data: any) {
-    const response = await axios.post(`${API_URL}/form-submissions`, {
+    const response = await api.post('/form-submissions', {
       form_id: formId,
       data,
     });
@@ -60,7 +58,7 @@ const formService = {
   },
 
   async getSubmissions(formId: number) {
-    const response = await axios.get(`${API_URL}/form-submissions/${formId}`);
+    const response = await api.get(`/form-submissions/${formId}`);
     return response.data;
   },
 };
