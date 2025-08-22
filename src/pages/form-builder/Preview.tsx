@@ -76,14 +76,14 @@ import React, { useState, useEffect } from 'react';
 import { Box, CircularProgress, Alert, Paper, Typography, Collapse, Button } from '@mui/material'; // 🆕 NEW: Added Button
 import FormRenderer from '../../components/form-builder/FormRenderer';
 import { formService } from '../../services/formService';
-import type { FormSchema } from '../../types/schema';
+import type { FormSchema } from '../../types/form';
 import { useAppDispatch } from '../../store';
 import { setNotification } from '../../store/uiSlice';
 import { useFormBuilderStore } from '../../store/useFormBuilderStore'; // 🆕 NEW: Import store
 
 export default function Preview() {
   const schemaFromStore = useFormBuilderStore(s => s.schema); // Get schema from store
-  const [schema, setSchema] = useState<FormSchema | null>(null);
+  const schema = useFormBuilderStore(s => s.schema);
   const [loading, setLoading] = useState(true);
   const [submittedDataResponse, setSubmittedDataResponse] = useState<any | null>(null); // 🆕 MODIFIED: To store full API response
   const [allSubmittedData, setAllSubmittedData] = useState<any[]>([]); // 🆕 NEW: To store all submitted data for the entity
@@ -91,19 +91,18 @@ export default function Preview() {
 
   useEffect(() => {
     // Always use the latest schema from the store
-    if (schemaFromStore) {
-      setSchema(schemaFromStore);
-      setLoading(false);
-      // 🆕 NEW: Load all submitted data for the current entity type
-      formService.getSubmittedData(schemaFromStore.entityType)
-        .then(data => setAllSubmittedData(data))
-        .catch(err => {
-          console.error("Failed to load all submitted data:", err);
-          dispatch(setNotification({ type: 'error', message: 'Failed to load submitted data.' }));
-        });
-    } else {
-      setLoading(false);
-    }
+  if (schema) {
+    setLoading(false);
+    // 🆕 NEW: Load all submitted data for the current entity type
+    formService.getSubmissions(schema.id)
+      .then(data => setAllSubmittedData(data))
+      .catch(err => {
+        console.error("Failed to load all submitted data:", err);
+        dispatch(setNotification({ type: 'error', message: 'Failed to load submitted data.' }));
+      });
+  } else {
+    setLoading(false);
+  }
   }, [schemaFromStore, dispatch]); // Depend on schemaFromStore
 
   const handleSubmit = async (data: Record<string, any>) => {
@@ -137,14 +136,14 @@ export default function Preview() {
 
     try {
       // 🆕 NEW: Call mock backend to submit data
-      const response = await formService.submitFormData(schema.entityType, dataToSend);
+      const response = await formService.submitForm(schema.id, dataToSend);
       setSubmittedDataResponse(response);
       dispatch(setNotification({
         type: 'success',
         message: response.message || 'Form submitted successfully!',
       }));
       // Refresh the list of all submitted data
-      const updatedAllData = await formService.getSubmittedData(schema.entityType);
+      const updatedAllData = await formService.getSubmissions(schema.id);
       setAllSubmittedData(updatedAllData);
 
     } catch (error: any) {
@@ -198,7 +197,7 @@ export default function Preview() {
           size="small" 
           sx={{ mt: 2 }}
           onClick={() => {
-            localStorage.removeItem(`submitted_data_${schema.entityType}`);
+            // This should be handled by a backend endpoint in a real app
             setAllSubmittedData([]);
             dispatch(setNotification({ type: 'info', message: `Cleared all submitted data for ${schema.entityType}.` }));
           }}

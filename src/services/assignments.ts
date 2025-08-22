@@ -1,102 +1,60 @@
-/**
- * Assignment management service
- */
+import api from './api';
+import { PaginatedResponse } from '../types/api';
 
-import { api, buildUrl } from './api';
-import { PaginatedResponse, QueryParams } from '../types/api';
-
-// Assignment types
 export interface Assignment {
   id: number;
   title: string;
-  description?: string;
-  due_date: string;
-  status: 'draft' | 'published' | 'closed';
+  description: string;
   class_id: number;
   subject_id: number;
-  attachment_url?: string;
+  teacher_id: number;
+  due_date: string;
+  attachment_paths: string[];
+  instructions: string;
+  max_score: number;
+  is_published: boolean;
   created_at: string;
   updated_at: string;
-  
-  // Relationships
-  class: {
-    id: number;
-    name: string;
-  };
-  subject: {
-    id: number;
-    name: string;
-  };
+  // These fields are not in the backend model but are in the frontend component
+  class: { name: string };
+  subject: { name: string };
+  status: string;
 }
 
 export interface AssignmentCreateRequest {
   title: string;
-  description?: string;
-  due_date: string;
-  status: 'draft' | 'published';
+  description: string;
   class_id: number;
   subject_id: number;
-  attachment?: File;
+  teacher_id: number;
+  due_date: string;
+  attachment_paths?: string[];
+  instructions?: string;
+  max_score?: number;
+  is_published?: boolean;
 }
 
-export interface AssignmentUpdateRequest {
-  title?: string;
-  description?: string;
-  due_date?: string;
-  status?: 'draft' | 'published' | 'closed';
-  class_id?: number;
-  subject_id?: number;
-  attachment?: File;
-}
-
-export interface AssignmentFilters extends QueryParams {
-  class_id?: number;
-  subject_id?: number;
-  status?: 'draft' | 'published' | 'closed';
-  due_date_from?: string;
-  due_date_to?: string;
-}
+export type AssignmentUpdateRequest = Partial<AssignmentCreateRequest>;
 
 export const assignmentsService = {
-  // Get all assignments with pagination and filters
-  getAssignments: async (params?: AssignmentFilters): Promise<PaginatedResponse<Assignment>> => {
-    const url = buildUrl('/assignments', params);
-    return api.get<PaginatedResponse<Assignment>>(url);
+  getAssignments: async (params: { page: number; per_page: number; search?: string, class_id?: number }) => {
+    const response = await api.get<PaginatedResponse<Assignment>>('/assignments', { params });
+    return response.data;
   },
-
-  // Get assignment by ID
-  getAssignment: async (id: number): Promise<Assignment> => {
-    return api.get<Assignment>(`/assignments/${id}`);
+  createAssignment: async (data: AssignmentCreateRequest) => {
+    const response = await api.post('/assignments', data);
+    return response.data;
   },
-
-  // Create new assignment
-  createAssignment: async (data: AssignmentCreateRequest): Promise<Assignment> => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined) {
-        formData.append(key, value);
-      }
-    });
-    return api.post<Assignment>('/assignments', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+  updateAssignment: async (id: number, data: AssignmentUpdateRequest) => {
+    const response = await api.put(`/assignments/${id}`, data);
+    return response.data;
   },
-
-  // Update assignment
-  updateAssignment: async (id: number, data: AssignmentUpdateRequest): Promise<Assignment> => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined) {
-        formData.append(key, value);
-      }
-    });
-    return api.post<Assignment>(`/assignments/${id}`, formData, { // Using POST for multipart/form-data with potential method override
-      headers: { 'Content-Type': 'multipart/form-data', 'X-HTTP-Method-Override': 'PUT' },
-    });
+  deleteAssignment: async (id: number) => {
+    const response = await api.delete(`/assignments/${id}`);
+    return response.data;
   },
-
-  // Delete assignment
-  deleteAssignment: async (id: number): Promise<void> => {
-    return api.delete(`/assignments/${id}`);
+  submitAssignment: async (id: number, data: { submission_text: string, attachment_paths: string[] }) => {
+    const response = await api.post(`/assignments/${id}/submit`, data);
+    return response.data;
   },
 };

@@ -26,14 +26,7 @@ export interface ApiError {
   code?: string;
 }
 
-export interface QueryParams {
-  page?: number;
-  per_page?: number;
-  sort_by?: string;
-  sort_order?: 'asc' | 'desc';
-  search?: string;
-  filters?: Record<string, any>;
-}
+export type QueryParams = Record<string, any>;
 
 export interface UploadResponse {
   file_url: string;

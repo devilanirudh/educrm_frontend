@@ -1,5 +1,6 @@
 import React from 'react';
-import { Typography, Box } from '@mui/material';
+import { Typography, Box, Grid, Paper, Link } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 
 const StudentDashboard: React.FC = () => (
   <Box>
@@ -7,8 +8,20 @@ const StudentDashboard: React.FC = () => (
       Student Dashboard
     </Typography>
     <Typography>
-      Welcome to the student dashboard. Implementation coming soon...
+      Welcome to the student dashboard.
     </Typography>
+    <Grid container spacing={3} sx={{ mt: 2 }}>
+      <Grid item xs={12}>
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            My Fees
+          </Typography>
+          <Link component={RouterLink} to="/my-fees">
+            View Fees
+          </Link>
+        </Paper>
+      </Grid>
+    </Grid>
   </Box>
 );
 

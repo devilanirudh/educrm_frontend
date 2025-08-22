@@ -18,7 +18,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { Assignment, AssignmentCreateRequest, AssignmentUpdateRequest } from '../../services/assignments';
 import { classesService, Class } from '../../services/classes';
-import { teachersService } from '../../services/teachers'; // Assuming subjects are related to teachers or classes
+import { subjectsService, Subject } from '../../services/subjects';
 
 interface AssignmentFormProps {
   open: boolean;
@@ -33,34 +33,32 @@ const validationSchema = Yup.object({
   class_id: Yup.number().required('Class is required'),
   subject_id: Yup.number().required('Subject is required'),
   due_date: Yup.date().required('Due date is required').nullable(),
-  description: Yup.string(),
+  instructions: Yup.string(),
 });
 
 const AssignmentForm: React.FC<AssignmentFormProps> = ({ open, onClose, onSave, initialData, isSaving }) => {
   const [classes, setClasses] = useState<Class[]>([]);
-  // Mock subjects for now
-  const [subjects, setSubjects] = useState([
-    { id: 1, name: 'Mathematics' },
-    { id: 2, name: 'Science' },
-    { id: 3, name: 'History' },
-    { id: 4, name: 'English' },
-  ]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
 
   useEffect(() => {
     if (open) {
-      classesService.getClasses({ per_page: 100 }).then(response => {
+      classesService.getClasses({ per_page: 100 }).then((response: { data: Class[] }) => {
         setClasses(response.data);
+      });
+      subjectsService.getSubjects({ per_page: 100 }).then((response: { data: Subject[] }) => {
+        setSubjects(response.data);
       });
     }
   }, [open]);
 
   const formik = useFormik<AssignmentCreateRequest | AssignmentUpdateRequest>({
     initialValues: {
-      title: initialData?.title || undefined,
+      title: initialData?.title || '',
       class_id: initialData?.class_id || undefined,
       subject_id: initialData?.subject_id || undefined,
       due_date: initialData?.due_date || undefined,
-      description: initialData?.description || undefined,
+      instructions: initialData?.instructions || '',
+      attachment_paths: initialData?.attachment_paths || [],
     },
     validationSchema,
     enableReinitialize: true,
@@ -128,24 +126,28 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ open, onClose, onSave, 
               />
             </LocalizationProvider>
             <TextField
-              name="description"
-              label="Description"
+              name="instructions"
+              label="Instructions"
               multiline
               rows={4}
-              value={formik.values.description}
+              value={formik.values.instructions}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              error={formik.touched.description && Boolean(formik.errors.description)}
-              helperText={formik.touched.description && formik.errors.description}
+              error={formik.touched.instructions && Boolean(formik.errors.instructions)}
+              helperText={formik.touched.instructions && formik.errors.instructions}
               fullWidth
             />
             <Button variant="outlined" component="label">
               Upload Attachment
-              <input type="file" hidden onChange={(e) => formik.setFieldValue('attachment', e.currentTarget.files?.[0])} />
+              <input type="file" hidden multiple onChange={(e) => {
+                if (e.currentTarget.files) {
+                  formik.setFieldValue('attachment_paths', Array.from(e.currentTarget.files).map(f => f.name))
+                }
+              }} />
             </Button>
-            {formik.values.attachment && (
-              <Chip label={(formik.values.attachment as File).name} onDelete={() => formik.setFieldValue('attachment', null)} />
-            )}
+            {formik.values.attachment_paths && formik.values.attachment_paths.map((file: any) => (
+              <Chip key={file} label={file} onDelete={() => formik.setFieldValue('attachment_paths', formik.values.attachment_paths?.filter(f => f !== file))} />
+            ))}
           </Box>
         </DialogContent>
         <DialogActions>

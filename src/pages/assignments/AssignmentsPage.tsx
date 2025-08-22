@@ -1,16 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
   Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   TextField,
   InputAdornment,
   IconButton,
@@ -18,67 +10,60 @@ import {
   CircularProgress,
   Alert,
   Tooltip,
+  Grid,
+  TableRow,
+  TableCell,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Clear as ClearIcon,
   Visibility as ViewIcon,
+  FilterList as FilterListIcon,
 } from '@mui/icons-material';
 import { useDebounce } from '../../hooks/useDebounce';
-import { assignmentsService, Assignment, AssignmentCreateRequest, AssignmentUpdateRequest } from '../../services/assignments';
+import { Assignment, AssignmentCreateRequest, AssignmentUpdateRequest } from '../../services/assignments';
 import { useAppDispatch } from '../../store';
 import { setNotification } from '../../store/uiSlice';
 import AssignmentForm from '../../components/assignments/AssignmentForm';
 import DeleteConfirmationDialog from '../../components/assignments/DeleteConfirmationDialog';
-
-const statusColors: { [key: string]: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' } = {
-  draft: 'default',
-  published: 'success',
-  closed: 'error',
-};
+import { useAssignments } from '../../hooks/useAssignments';
+import StyledCard from '../../components/common/StyledCard';
+import StyledTable from '../../components/common/StyledTable';
+import AssignmentFilterDrawer from '../../components/assignments/AssignmentFilterDrawer';
 
 const AssignmentsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [isFilterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [isFilterPinned, setFilterPinned] = useState(false);
 
   const [isFormOpen, setFormOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
 
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
 
-  const loadAssignments = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await assignmentsService.getAssignments({
-        page: page + 1,
-        per_page: rowsPerPage,
-        search: debouncedSearchTerm || undefined,
-      });
-      setAssignments(response.data);
-      setTotal(response.total);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load assignments');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, rowsPerPage, debouncedSearchTerm]);
+  const { assignments, isAssignmentsLoading, createAssignment, isCreatingAssignment, updateAssignment, isUpdatingAssignment, deleteAssignment } = useAssignments({
+    page,
+    per_page: rowsPerPage,
+    search: debouncedSearchTerm || undefined,
+    ...filters,
+  });
 
-  useEffect(() => {
-    loadAssignments();
-  }, [loadAssignments]);
+  const columns = useMemo(() => [
+    { id: 'title', label: 'Assignment Title', minWidth: 250 },
+    { id: 'class', label: 'Class', minWidth: 150 },
+    { id: 'subject', label: 'Subject', minWidth: 150 },
+    { id: 'due_date', label: 'Due Date', minWidth: 150 },
+    { id: 'status', label: 'Status', minWidth: 100 },
+    { id: 'actions', label: 'Actions', align: 'right' as const, minWidth: 150 },
+  ], []);
 
   const handlePageChange = (event: unknown, newPage: number) => setPage(newPage);
   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,21 +82,17 @@ const AssignmentsPage: React.FC = () => {
   };
 
   const handleSaveAssignment = async (data: AssignmentCreateRequest | AssignmentUpdateRequest) => {
-    setIsSaving(true);
     try {
       if (selectedAssignment) {
-        await assignmentsService.updateAssignment(selectedAssignment.id, data);
+        await updateAssignment({ id: selectedAssignment.id, data });
         dispatch(setNotification({ type: 'success', message: 'Assignment updated successfully!' }));
       } else {
-        await assignmentsService.createAssignment(data as AssignmentCreateRequest);
+        await createAssignment(data as AssignmentCreateRequest);
         dispatch(setNotification({ type: 'success', message: 'Assignment created successfully!' }));
       }
       handleCloseForm();
-      loadAssignments();
     } catch (err: any) {
       dispatch(setNotification({ type: 'error', message: err.message || 'Failed to save assignment' }));
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -127,16 +108,39 @@ const AssignmentsPage: React.FC = () => {
   const handleDeleteAssignment = async () => {
     if (!assignmentToDelete) return;
     try {
-      await assignmentsService.deleteAssignment(assignmentToDelete.id);
+      await deleteAssignment(assignmentToDelete.id);
       dispatch(setNotification({ type: 'success', message: 'Assignment deleted successfully!' }));
       handleCloseDeleteDialog();
-      loadAssignments();
     } catch (err: any) {
       dispatch(setNotification({ type: 'error', message: err.message || 'Failed to delete assignment' }));
     }
   };
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
+
+  const renderRow = (row: Assignment) => (
+    <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
+      <TableCell>
+        <Typography variant="subtitle2">{row.title}</Typography>
+        <Typography variant="caption" color="text.secondary">ID: {row.id}</Typography>
+      </TableCell>
+      <TableCell>{row.class.name}</TableCell>
+      <TableCell>{row.subject.name}</TableCell>
+      <TableCell>{formatDate(row.due_date)}</TableCell>
+      <TableCell>
+        <Chip
+          label={row.status}
+          color={row.status === 'Published' ? "success" : "default"}
+          size="small"
+        />
+      </TableCell>
+      <TableCell align="right">
+        <Tooltip title="View"><IconButton size="small"><ViewIcon /></IconButton></Tooltip>
+        <Tooltip title="Edit"><IconButton size="small" onClick={() => handleOpenForm(row)}><EditIcon /></IconButton></Tooltip>
+        <Tooltip title="Delete"><IconButton size="small" onClick={() => handleOpenDeleteDialog(row)}><DeleteIcon /></IconButton></Tooltip>
+      </TableCell>
+    </TableRow>
+  );
 
   return (
     <Box sx={{ p: 3 }}>
@@ -147,89 +151,48 @@ const AssignmentsPage: React.FC = () => {
         </Button>
       </Box>
 
-      <Box mb={3}>
-        <TextField
-          fullWidth
-          placeholder="Search assignments by title, class, or subject..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
-            endAdornment: searchTerm && (
-              <InputAdornment position="end">
-                <IconButton onClick={() => setSearchTerm('')} size="small"><ClearIcon /></IconButton>
-              </InputAdornment>
-            ),
-          }}
-          sx={{ maxWidth: 500 }}
-        />
-      </Box>
+      <StyledCard sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} justifyContent="space-between" alignItems="center">
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
+              }}
+            />
+          </Grid>
+          <Grid item>
+            <Button
+              variant="outlined"
+              startIcon={<FilterListIcon />}
+              onClick={() => setFilterDrawerOpen(true)}
+            >
+              Filters
+            </Button>
+          </Grid>
+        </Grid>
+      </StyledCard>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Assignment Title</TableCell>
-                <TableCell>Class</TableCell>
-                <TableCell>Subject</TableCell>
-                <TableCell>Due Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={6} align="center"><CircularProgress /></TableCell></TableRow>
-              ) : assignments.length > 0 ? (
-                assignments.map((assignment) => (
-                  <TableRow key={assignment.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{assignment.title}</Typography>
-                      <Typography variant="caption" color="text.secondary">ID: {assignment.id}</Typography>
-                    </TableCell>
-                    <TableCell>{assignment.class.name}</TableCell>
-                    <TableCell>{assignment.subject.name}</TableCell>
-                    <TableCell>{formatDate(assignment.due_date)}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
-                        color={statusColors[assignment.status]}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="View"><IconButton size="small"><ViewIcon /></IconButton></Tooltip>
-                      <Tooltip title="Edit"><IconButton size="small" onClick={() => handleOpenForm(assignment)}><EditIcon /></IconButton></Tooltip>
-                      <Tooltip title="Delete"><IconButton size="small" onClick={() => handleOpenDeleteDialog(assignment)}><DeleteIcon /></IconButton></Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow><TableCell colSpan={6} align="center">No assignments found.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={total}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-        />
-      </Paper>
+      <StyledTable
+        columns={columns}
+        data={assignments?.data || []}
+        total={assignments?.total || 0}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        onPageChange={handlePageChange}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        renderRow={renderRow}
+      />
 
       <AssignmentForm
         open={isFormOpen}
         onClose={handleCloseForm}
         onSave={handleSaveAssignment}
         initialData={selectedAssignment}
-        isSaving={isSaving}
+        isSaving={isCreatingAssignment || isUpdatingAssignment}
       />
 
       {assignmentToDelete && (
@@ -241,6 +204,13 @@ const AssignmentsPage: React.FC = () => {
           message={`Are you sure you want to delete the assignment "${assignmentToDelete.title}"? This action cannot be undone.`}
         />
       )}
+
+      <AssignmentFilterDrawer
+        open={isFilterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        onApply={setFilters}
+        pinned={isFilterPinned}
+      />
     </Box>
   );
 };

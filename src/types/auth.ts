@@ -27,6 +27,8 @@ export interface User {
   postal_code?: string;
   language_preference: string;
   timezone: string;
+  teacher?: any; // Replace 'any' with a proper Teacher type if available
+  student?: any; // Replace 'any' with a proper Student type if available
 }
 
 export interface LoginRequest {

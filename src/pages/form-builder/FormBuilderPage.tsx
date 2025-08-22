@@ -1,109 +1,111 @@
-import React, { useState } from 'react';
-import { 
-  Box, 
-  Tabs, 
-  Tab, 
-  Paper, 
-  useTheme, 
-  useMediaQuery, 
-  IconButton, 
-  Drawer,
-  Typography   // ✅ FIX: Added Typography here
-} from '@mui/material';
-import Builder from './Builder';
-import Preview from './Preview';
-import { 
-  Build, 
-  Preview as PreviewIcon, 
-  Menu as MenuIcon, 
-  Edit as EditIcon 
-} from '@mui/icons-material';
-import FieldPalette from '../../components/form-builder/FieldPalette';
-import PropertyEditor from '../../components/form-builder/PropertyEditor';
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Box, Paper } from "@mui/material";
+import { DndContext, DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
+import TopBar from "../../components/form-builder/TopBar";
+import { useFormBuilderStore } from "../../store/useFormBuilderStore";
+import { formService } from "../../services/formService";
+import FieldPalette from "../../components/form-builder/FieldPalette";
+import Canvas from "../../components/form-builder/Canvas";
+import PropertyEditor from "../../components/form-builder/PropertyEditor";
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
+const FormBuilderPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const [isSaving, setIsSaving] = useState(false);
+  const { schema, addField, setMeta, setEntityType } = useFormBuilderStore();
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div role="tabpanel" hidden={value !== index} {...other}>
-      {value === index && <Box sx={{ height: '100%' }}>{children}</Box>}
-    </div>
-  );
-}
+  // Initialize form based on URL parameters
+  useEffect(() => {
+    const type = searchParams.get('type');
+    const key = searchParams.get('key');
+    
+    if (type && key) {
+      setMeta({ 
+        name: `${type.charAt(0).toUpperCase() + type.slice(1)} Form`,
+        description: `Form for managing ${type} data` 
+      });
+      setEntityType(type);
+    } else if (type) {
+      // Generate a unique key with timestamp if no specific key is provided
+      const timestamp = Date.now();
+      setMeta({ 
+        name: `${type.charAt(0).toUpperCase() + type.slice(1)} Form`,
+        description: `Form for managing ${type} data` 
+      });
+      setEntityType(type);
+    }
+  }, [searchParams, setMeta, setEntityType]);
 
-export default function FormBuilderPage() {
-  const [tabIndex, setTabIndex] = useState(0);
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [editorOpen, setEditorOpen] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabIndex(newValue);
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const key = searchParams.get('key');
+      let formToSave = { ...schema };
+      
+      if (key) {
+        // Set the form key from URL parameters
+        formToSave.key = key;
+      } else {
+        // Generate a unique key with timestamp if none provided
+        const timestamp = Date.now();
+        formToSave.key = `form_${timestamp}`;
+      }
+      
+      // Use createOrUpdateForm to handle existing forms
+      await formService.createOrUpdateForm(formToSave);
+      console.log("Form saved successfully!");
+      alert("Form saved successfully! You can now use it in your application.");
+    } catch (error: any) {
+      console.error("Failed to save form:", error);
+      alert("Failed to save form. Please check the console for details and try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const builderContent = isMobile ? (
-    <>
-      <Box 
-        sx={{ 
-          p: 1, 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          borderBottom: 1, 
-          borderColor: 'divider' 
-        }}
-      >
-        <IconButton onClick={() => setPaletteOpen(true)}>
-          <MenuIcon />
-        </IconButton>
-        
-        <Typography sx={{ alignSelf: 'center' }}>Canvas</Typography> {/* ✅ FIXED */}
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
 
-        <IconButton onClick={() => setEditorOpen(true)}>
-          <EditIcon />
-        </IconButton>
-      </Box>
-
-      {/* Left Drawer - Field Palette */}
-      <Drawer anchor="left" open={paletteOpen} onClose={() => setPaletteOpen(false)}>
-        <FieldPalette />
-      </Drawer>
-
-      {/* Right Drawer - Property Editor */}
-      <Drawer anchor="right" open={editorOpen} onClose={() => setEditorOpen(false)}>
-        <PropertyEditor />
-      </Drawer>
-
-      <Builder />
-    </>
-  ) : (
-    <Builder />
-  );
+    if (over && over.id === "canvas" && active.id.toString().startsWith("field-palette-")) {
+      const fieldType = active.id.toString().replace("field-palette-", "") as any;
+      
+      // Create a new field
+      const newField = {
+        id: Date.now(),
+        field_type: fieldType,
+        label: `New ${fieldType.charAt(0).toUpperCase() + fieldType.slice(1)}`,
+        field_name: `field_${Date.now()}`,
+        is_required: false,
+        is_filterable: false,
+        is_visible_in_listing: true,
+        options: fieldType === "select" || fieldType === "radio" ? [
+          { id: 1, label: "Option 1", value: "option1" },
+          { id: 2, label: "Option 2", value: "option2" }
+        ] : undefined,
+      };
+      
+      addField(newField);
+    }
+  };
 
   return (
-    <Paper sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs value={tabIndex} onChange={handleChange}>
-          <Tab icon={<Build />} iconPosition="start" label="Builder" />
-          <Tab icon={<PreviewIcon />} iconPosition="start" label="Preview" />
-        </Tabs>
+    <DndContext onDragEnd={handleDragEnd}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'grey.100' }}>
+        <TopBar onSave={handleSave} isSaving={isSaving} />
+        <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <Box sx={{ width: '20%', bgcolor: 'white', p: 2, overflowY: 'auto' }}>
+            <FieldPalette />
+          </Box>
+          <Box sx={{ flex: 1, p: 3, overflowY: 'auto' }}>
+            <Canvas />
+          </Box>
+          <Box sx={{ width: '25%', bgcolor: 'white', p: 2, overflowY: 'auto' }}>
+            <PropertyEditor />
+          </Box>
+        </Box>
       </Box>
-
-      {/* Tab Panels */}
-      <Box sx={{ flex: 1, overflow: 'auto' }}>
-        <TabPanel value={tabIndex} index={0}>
-          {builderContent}
-        </TabPanel>
-        <TabPanel value={tabIndex} index={1}>
-          <Preview />
-        </TabPanel>
-      </Box>
-    </Paper>
+    </DndContext>
   );
-}
+};
+
+export default FormBuilderPage;

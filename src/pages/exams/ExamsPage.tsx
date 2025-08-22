@@ -1,17 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
   Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   TextField,
   InputAdornment,
   IconButton,
@@ -19,6 +11,9 @@ import {
   CircularProgress,
   Alert,
   Tooltip,
+  Grid,
+  TableRow,
+  TableCell,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -27,12 +22,17 @@ import {
   Delete as DeleteIcon,
   Clear as ClearIcon,
   Visibility as ViewIcon,
+  FilterList as FilterListIcon,
 } from '@mui/icons-material';
 import { useDebounce } from '../../hooks/useDebounce';
-import { examsService, Exam } from '../../services/exams';
+import { Exam } from '../../types/exams';
 import { useAppDispatch } from '../../store';
 import { setNotification } from '../../store/uiSlice';
 import DeleteConfirmationDialog from '../../components/exams/DeleteConfirmationDialog';
+import { useExamsList } from '../../hooks/useExams';
+import StyledCard from '../../components/common/StyledCard';
+import StyledTable from '../../components/common/StyledTable';
+import ExamFilterDrawer from '../../components/exams/ExamFilterDrawer';
 
 const statusColors: { [key: string]: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' } = {
   Upcoming: 'info',
@@ -44,39 +44,33 @@ const statusColors: { [key: string]: 'default' | 'primary' | 'secondary' | 'erro
 const ExamsPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [exams, setExams] = useState<Exam[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [isFilterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [isFilterPinned, setFilterPinned] = useState(false);
 
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [examToDelete, setExamToDelete] = useState<Exam | null>(null);
 
-  const loadExams = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await examsService.getExams({
-        page: page + 1,
-        per_page: rowsPerPage,
-        search: debouncedSearchTerm || undefined,
-      });
-      setExams(response.data);
-      setTotal(response.total);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load exams');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, rowsPerPage, debouncedSearchTerm]);
+  const { exams, isExamsLoading, deleteExam } = useExamsList({
+    page: page + 1,
+    per_page: rowsPerPage,
+    search: debouncedSearchTerm || undefined,
+    ...filters,
+  });
 
-  useEffect(() => {
-    loadExams();
-  }, [loadExams]);
+  const columns = useMemo(() => [
+    { id: 'name', label: 'Exam Name', minWidth: 250 },
+    { id: 'exam_id', label: 'Exam ID', minWidth: 150 },
+    { id: 'class', label: 'Class', minWidth: 150 },
+    { id: 'subjects', label: 'Subject(s)', minWidth: 200 },
+    { id: 'exam_date', label: 'Exam Date', minWidth: 150 },
+    { id: 'status', label: 'Status', minWidth: 100 },
+    { id: 'actions', label: 'Actions', align: 'right' as const, minWidth: 150 },
+  ], []);
 
   const handlePageChange = (event: unknown, newPage: number) => setPage(newPage);
   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,16 +95,48 @@ const ExamsPage: React.FC = () => {
   const handleDeleteExam = async () => {
     if (!examToDelete) return;
     try {
-      await examsService.deleteExam(examToDelete.id);
+      await deleteExam(parseInt(examToDelete.id, 10));
       dispatch(setNotification({ type: 'success', message: 'Exam deleted successfully!' }));
       handleCloseDeleteDialog();
-      loadExams();
     } catch (err: any) {
       dispatch(setNotification({ type: 'error', message: err.message || 'Failed to delete exam' }));
     }
   };
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
+
+  const renderRow = (row: Exam) => (
+    <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
+      <TableCell>
+        <Typography variant="subtitle2">{row.name}</Typography>
+      </TableCell>
+      <TableCell>{row.exam_id}</TableCell>
+      <TableCell>{row.class.name}</TableCell>
+      <TableCell>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          {row.subjects.slice(0, 2).map((subject) => (
+            <Chip key={subject.id} label={subject.name} size="small" />
+          ))}
+          {row.subjects.length > 2 && (
+            <Chip label={`+${row.subjects.length - 2}`} size="small" />
+          )}
+        </Box>
+      </TableCell>
+      <TableCell>{formatDate(row.exam_date)}</TableCell>
+      <TableCell>
+        <Chip
+          label={row.status}
+          color={statusColors[row.status]}
+          size="small"
+        />
+      </TableCell>
+      <TableCell align="right">
+        <Tooltip title="View"><IconButton size="small"><ViewIcon /></IconButton></Tooltip>
+        <Tooltip title="Edit"><IconButton size="small"><EditIcon /></IconButton></Tooltip>
+        <Tooltip title="Delete"><IconButton size="small" onClick={() => handleOpenDeleteDialog(row)}><DeleteIcon /></IconButton></Tooltip>
+      </TableCell>
+    </TableRow>
+  );
 
   return (
     <Box sx={{ p: 3 }}>
@@ -121,92 +147,46 @@ const ExamsPage: React.FC = () => {
         </Button>
       </Box>
 
-      <Box mb={3}>
-        <TextField
-          fullWidth
-          placeholder="Search exams by name, class, or subject..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
-            endAdornment: searchTerm && (
-              <InputAdornment position="end">
-                <IconButton onClick={() => setSearchTerm('')} size="small"><ClearIcon /></IconButton>
-              </InputAdornment>
-            ),
-          }}
-          sx={{ maxWidth: 500 }}
-        />
-      </Box>
+      <StyledCard sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} justifyContent="space-between" alignItems="center">
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              placeholder="Search exams by name, class, or subject..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
+                endAdornment: searchTerm && (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setSearchTerm('')} size="small"><ClearIcon /></IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item>
+            <Button
+              variant="outlined"
+              startIcon={<FilterListIcon />}
+              onClick={() => setFilterDrawerOpen(true)}
+            >
+              Filters
+            </Button>
+          </Grid>
+        </Grid>
+      </StyledCard>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Exam Name</TableCell>
-                <TableCell>Exam ID</TableCell>
-                <TableCell>Class</TableCell>
-                <TableCell>Subject(s)</TableCell>
-                <TableCell>Exam Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={7} align="center"><CircularProgress /></TableCell></TableRow>
-              ) : exams.length > 0 ? (
-                exams.map((exam) => (
-                  <TableRow key={exam.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{exam.name}</Typography>
-                    </TableCell>
-                    <TableCell>{exam.exam_id}</TableCell>
-                    <TableCell>{exam.class.name}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {exam.subjects.slice(0, 2).map((subject) => (
-                          <Chip key={subject.id} label={subject.name} size="small" />
-                        ))}
-                        {exam.subjects.length > 2 && (
-                          <Chip label={`+${exam.subjects.length - 2}`} size="small" />
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>{formatDate(exam.exam_date)}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={exam.status}
-                        color={statusColors[exam.status]}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="View"><IconButton size="small"><ViewIcon /></IconButton></Tooltip>
-                      <Tooltip title="Edit"><IconButton size="small"><EditIcon /></IconButton></Tooltip>
-                      <Tooltip title="Delete"><IconButton size="small" onClick={() => handleOpenDeleteDialog(exam)}><DeleteIcon /></IconButton></Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow><TableCell colSpan={7} align="center">No exams found.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={total}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-        />
-      </Paper>
+      <StyledTable
+        columns={columns}
+        data={exams?.data || []}
+        total={exams?.total || 0}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        onPageChange={handlePageChange}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        renderRow={renderRow}
+      />
 
       {examToDelete && (
         <DeleteConfirmationDialog
@@ -217,6 +197,13 @@ const ExamsPage: React.FC = () => {
           message={`Are you sure you want to delete the exam "${examToDelete.name}"? This action cannot be undone.`}
         />
       )}
+
+      <ExamFilterDrawer
+        open={isFilterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        onApply={setFilters}
+        pinned={isFilterPinned}
+      />
     </Box>
   );
 };

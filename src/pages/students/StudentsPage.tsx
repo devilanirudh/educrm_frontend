@@ -1,247 +1,10 @@
-// import React, { useState, useEffect } from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import {
-//   Box,
-//   Typography,
-//   Button,
-//   Paper,
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableContainer,
-//   TableHead,
-//   TableRow,
-//   TablePagination,
-//   TextField,
-//   InputAdornment,
-//   IconButton,
-//   Chip,
-//   Avatar,
-//   CircularProgress,
-//   Alert,
-// } from '@mui/material';
-// import {
-//   Search as SearchIcon,
-//   Add as AddIcon,
-//   Edit as EditIcon,
-//   Delete as DeleteIcon,
-//   Clear as ClearIcon,
-// } from '@mui/icons-material';
-// import { studentsService, Student } from '../../services/students';
-
-// const StudentsPage: React.FC = () => {
-//   const navigate = useNavigate();
-//   const [students, setStudents] = useState<Student[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState<string | null>(null);
-//   const [total, setTotal] = useState(0);
-//   const [page, setPage] = useState(0);
-//   const [rowsPerPage, setRowsPerPage] = useState(10);
-//   const [searchTerm, setSearchTerm] = useState('');
-
-//   const loadStudents = async () => {
-//     try {
-//       setLoading(true);
-//       setError(null);
-      
-//       const response = await studentsService.getStudents({
-//         page: page + 1,
-//         per_page: rowsPerPage,
-//         search: searchTerm || undefined,
-//       });
-      
-//       setStudents(response.data);
-//       setTotal(response.total);
-//     } catch (err: any) {
-//       setError(err.message || 'Failed to load students');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     loadStudents();
-//   }, [page, rowsPerPage, searchTerm]);
-
-//   const handlePageChange = (event: unknown, newPage: number) => {
-//     setPage(newPage);
-//   };
-
-//   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-//     setRowsPerPage(parseInt(event.target.value, 10));
-//     setPage(0);
-//   };
-
-//   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-//     setSearchTerm(event.target.value);
-//     setPage(0);
-//   };
-
-//   const formatDate = (dateString: string) => {
-//     return new Date(dateString).toLocaleDateString();
-//   };
-
-//   const handleAddStudent = () => {
-//     navigate('/form-builder');
-//   };
-
-//   if (loading && students.length === 0) {
-//     return (
-//       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-//         <CircularProgress />
-//       </Box>
-//     );
-//   }
-
-//   return (
-//     <Box sx={{ p: 3 }}>
-//       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-//         <Typography variant="h4" gutterBottom>
-//           Students Management
-//         </Typography>
-//         <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddStudent}>
-//           Add Student
-//         </Button>
-//       </Box>
-
-//       <Box mb={3}>
-//         <TextField
-//           fullWidth
-//           placeholder="Search students..."
-//           value={searchTerm}
-//           onChange={handleSearchChange}
-//           InputProps={{
-//             startAdornment: (
-//               <InputAdornment position="start">
-//                 <SearchIcon />
-//               </InputAdornment>
-//             ),
-//             endAdornment: searchTerm && (
-//               <InputAdornment position="end">
-//                 <IconButton onClick={() => setSearchTerm('')} size="small">
-//                   <ClearIcon />
-//                 </IconButton>
-//               </InputAdornment>
-//             ),
-//           }}
-//           sx={{ maxWidth: 500 }}
-//         />
-//       </Box>
-
-//       {error && (
-//         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-//           {error}
-//         </Alert>
-//       )}
-
-//       <Paper>
-//         <TableContainer>
-//           <Table>
-//             <TableHead>
-//               <TableRow>
-//                 <TableCell>Student</TableCell>
-//                 <TableCell>Student ID</TableCell>
-//                 <TableCell>Class</TableCell>
-//                 <TableCell>Admission Date</TableCell>
-//                 <TableCell>Status</TableCell>
-//                 <TableCell>Actions</TableCell>
-//               </TableRow>
-//             </TableHead>
-//             <TableBody>
-//               {students.map((student) => (
-//                 <TableRow key={student.id} hover>
-//                   <TableCell>
-//                     <Box display="flex" alignItems="center" gap={2}>
-//                       <Avatar src={student.user.profile_picture}>
-//                         {student.user.first_name[0]}{student.user.last_name[0]}
-//                       </Avatar>
-//                       <Box>
-//                         <Typography variant="subtitle2">
-//                           {student.user.first_name} {student.user.last_name}
-//                         </Typography>
-//                         <Typography variant="body2" color="text.secondary">
-//                           {student.user.email}
-//                         </Typography>
-//                       </Box>
-//                     </Box>
-//                   </TableCell>
-//                   <TableCell>{student.student_id}</TableCell>
-//                   <TableCell>
-//                     {student.current_class ? (
-//                       <Box>
-//                         <Typography variant="body2">
-//                           {student.current_class.name}
-//                           {student.section && ` - ${student.section}`}
-//                         </Typography>
-//                         <Typography variant="caption" color="text.secondary">
-//                           {student.academic_year}
-//                         </Typography>
-//                       </Box>
-//                     ) : (
-//                       <Typography color="text.secondary">-</Typography>
-//                     )}
-//                   </TableCell>
-//                   <TableCell>{formatDate(student.admission_date)}</TableCell>
-//                   <TableCell>
-//                     <Chip
-//                       label={student.is_active ? 'Active' : 'Inactive'}
-//                       color={student.is_active ? 'success' : 'error'}
-//                       size="small"
-//                     />
-//                   </TableCell>
-//                   <TableCell>
-//                     <IconButton size="small" aria-label={`Edit student ${student.user.first_name}`}>
-//                       <EditIcon />
-//                     </IconButton>
-//                     <IconButton size="small" aria-label={`Delete student ${student.user.first_name}`}>
-//                       <DeleteIcon />
-//                     </IconButton>
-//                   </TableCell>
-//                 </TableRow>
-//               ))}
-//               {students.length === 0 && !loading && (
-//                 <TableRow>
-//                   <TableCell colSpan={6} align="center">
-//                     <Typography variant="body2" color="text.secondary">
-//                       No students found
-//                     </Typography>
-//                   </TableCell>
-//                 </TableRow>
-//               )}
-//             </TableBody>
-//           </Table>
-//         </TableContainer>
-        
-//         <TablePagination
-//           rowsPerPageOptions={[5, 10, 25, 50]}
-//           component="div"
-//           count={total}
-//           rowsPerPage={rowsPerPage}
-//           page={page}
-//           onPageChange={handlePageChange}
-//           onRowsPerPageChange={handleRowsPerPageChange}
-//         />
-//       </Paper>
-//     </Box>
-//   );
-// };
-
-// export default StudentsPage;
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from 'react-query';
 import {
   Box,
   Typography,
   Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   TextField,
   InputAdornment,
   IconButton,
@@ -249,57 +12,113 @@ import {
   Avatar,
   CircularProgress,
   Alert,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  TableRow,
+  TableCell,
+  Card,
+  CardContent,
+  CardActions,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Divider,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   Clear as ClearIcon,
+  FilterList as FilterListIcon,
+  MoreVert as MoreVertIcon,
+  PushPin as PushPinIcon,
+  Description as FormIcon,
+  Create as CreateIcon,
+  List as ListIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
-import { studentsService, Student, StudentCreateRequest } from '../../services/students';
-import AddStudentDialog from '../../components/students/AddStudentDialog';
-import StudentForm from '../../components/students/StudentForm';
-import { useAppDispatch } from '../../store';
-import { setNotification } from '../../store/uiSlice';
+import { studentsService, Student } from '../../services/students';
+import StudentFilterDrawer from '../../components/students/StudentFilterDrawer';
+import DeleteConfirmationDialog from '../../components/students/DeleteConfirmationDialog';
+import FormRenderer from '../../components/form-builder/FormRenderer';
+import { useStudents } from '../../hooks/useStudents';
+import { useForm } from '../../hooks/useForm';
+import StyledCard from '../../components/common/StyledCard';
+import StyledTable from '../../components/common/StyledTable';
 
 const StudentsPage: React.FC = () => {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isAddDialogVisible, setAddDialogVisible] = useState(false);
-  const [isExistingFormVisible, setExistingFormVisible] = useState(false);
-  const [isSavingStudent, setIsSavingStudent] = useState(false);
+  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [isFilterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [isFilterPinned, setFilterPinned] = useState(false);
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [localStudents, setLocalStudents] = useState<any>(null);
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
 
-  const loadStudents = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await studentsService.getStudents({
-        page: page + 1,
-        per_page: rowsPerPage,
-        search: searchTerm || undefined,
-      });
-      
-      setStudents(response.data);
-      setTotal(response.total);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load students');
-    } finally {
-      setLoading(false);
+  const { students, isStudentsLoading, studentsError, refetchStudents, createStudent, updateStudent, deleteStudent, isDeletingStudent } = useStudents({
+    page,
+    per_page: rowsPerPage,
+    search: searchTerm || undefined,
+    ...filters,
+  });
+
+  const { formSchema, isFormSchemaLoading, formSchemaError, isFormSchemaError } = useForm('student_form');
+
+  const [tableVisibleColumns, setTableVisibleColumns] = useState<string[]>(['student', 'student_id', 'academic_year', 'roll_number', 'section', 'status', 'actions']);
+
+  const visibleColumns = useMemo(() => {
+    if (formSchema?.fields) {
+      return formSchema.fields.filter(field => field.is_visible_in_listing);
     }
-  }, [page, rowsPerPage, searchTerm]);
+    // Default columns if form schema is not available
+    return [
+      { field_name: 'student_id', label: 'Student ID', is_visible_in_listing: true },
+      { field_name: 'academic_year', label: 'Academic Year', is_visible_in_listing: true },
+      { field_name: 'roll_number', label: 'Roll Number', is_visible_in_listing: true },
+      { field_name: 'section', label: 'Section', is_visible_in_listing: true },
+    ];
+  }, [formSchema]);
 
-  useEffect(() => {
-    loadStudents();
-  }, [loadStudents]);
+  // Initialize table visible columns when form schema changes (only on first load)
+  React.useEffect(() => {
+    if (visibleColumns.length > 0 && tableVisibleColumns.length === 0) {
+      const allColumnIds = ['student', ...visibleColumns.map(col => col.field_name), 'status', 'actions'];
+      setTableVisibleColumns(allColumnIds);
+    }
+  }, [visibleColumns, tableVisibleColumns.length]);
+
+  // Set local state when React Query data is available
+  React.useEffect(() => {
+    if (students && !localStudents) {
+      setLocalStudents(students);
+      console.log('Setting local students from React Query:', students);
+    }
+  }, [students, localStudents]);
+
+  const columns = useMemo(() => [
+    { id: 'student', label: 'Student', minWidth: 250 },
+    ...visibleColumns.map(col => ({ id: col.field_name, label: col.label, minWidth: 180 })),
+    { id: 'status', label: 'Status', minWidth: 120 },
+    { id: 'actions', label: 'Actions', align: 'right' as const, minWidth: 120 },
+  ], [visibleColumns]);
+
+
+
+
 
   const handlePageChange = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -315,68 +134,245 @@ const StudentsPage: React.FC = () => {
     setPage(0);
   };
 
-  const handleAddStudentClick = () => {
-    setAddDialogVisible(true);
+  const handleAddStudent = () => {
+    setSelectedStudent(null);
+    setFormOpen(true);
   };
 
-  const handleCloseAddDialog = () => {
-    setAddDialogVisible(false);
+  const handleEditStudent = (student: Student) => {
+    console.log('🔍 handleEditStudent called with student:', student);
+    const mappedData = mapStudentToFormData(student);
+    console.log('🔍 Mapped data for form:', mappedData);
+    setSelectedStudent(student);
+    setFormOpen(true);
+    handleMenuClose();
   };
 
-  const handleSelectExistingForm = () => {
-    setAddDialogVisible(false);
-    setExistingFormVisible(true);
+  const handleFormClose = () => {
+    setFormOpen(false);
+    setSelectedStudent(null);
   };
 
-  const handleSelectDynamicForm = () => {
-    setAddDialogVisible(false);
-    navigate('/form-builder');
-  };
-
-  const handleCloseExistingForm = () => {
-    setExistingFormVisible(false);
-  };
-
-  const handleSaveStudent = async (data: StudentCreateRequest) => {
-    setIsSavingStudent(true);
+  const handleFormSave = async (data: any) => {
     try {
-      await studentsService.createStudent(data);
-      dispatch(setNotification({ type: 'success', message: 'Student added successfully!' }));
-      handleCloseExistingForm();
-      loadStudents();
+      if (selectedStudent) {
+        updateStudent({ id: selectedStudent.id, data });
+        setSuccessMessage('Student updated successfully!');
+      } else {
+        // Use the dynamic form endpoint for new students
+        const result = await studentsService.createStudentFromDynamicForm(data);
+        // Invalidate the students query to refresh the list
+        queryClient.invalidateQueries('students');
+        // Also refetch the data immediately
+        queryClient.refetchQueries('students');
+        // Update local state as fallback
+        if (localStudents) {
+          setLocalStudents({
+            ...localStudents,
+            students: [...localStudents.students, result.student],
+            total: localStudents.total + 1
+          });
+        }
+        setSuccessMessage('Student created successfully!');
+      }
+      handleFormClose();
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      dispatch(setNotification({ type: 'error', message: err.message || 'Failed to add student.' }));
-    } finally {
-      setIsSavingStudent(false);
+      setError(err.message || 'Failed to save student');
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, student: Student) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedStudent(student);
   };
 
-  if (loading && students.length === 0) {
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedStudent(null);
+  };
+
+  const handleEditForm = () => {
+    // Navigate to advanced form builder
+    navigate('/form-builder/advanced?type=student');
+  };
+
+  const handleDeleteStudent = (student: Student) => {
+    setStudentToDelete(student);
+    setDeleteDialogOpen(true);
+    handleMenuClose();
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!studentToDelete) return;
+
+    try {
+      setError(null);
+      await deleteStudent(studentToDelete.id);
+
+      // Update local state immediately for better UX
+      if (localStudents?.students) {
+        const updatedStudents = localStudents.students.filter((s: Student) => s.id !== studentToDelete.id);
+        setLocalStudents({
+          ...localStudents,
+          students: updatedStudents,
+          total: localStudents.total - 1
+        });
+      }
+
+      setSuccessMessage(`Student ${studentToDelete.user.first_name} ${studentToDelete.user.last_name} has been successfully deactivated.`);
+      setDeleteDialogOpen(false);
+      setStudentToDelete(null);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete student');
+      setDeleteDialogOpen(false);
+      setStudentToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setStudentToDelete(null);
+  };
+
+  // Function to map student data to form fields
+  const mapStudentToFormData = (student: Student): Record<string, any> => {
+    if (!student || !formSchema) return {};
+
+    const formData: Record<string, any> = {};
+
+    // Map form fields to student data
+    formSchema.fields.forEach(field => {
+      let value: any = undefined;
+
+      // First check dynamic_data (custom form fields)
+      if (student.dynamic_data && student.dynamic_data[field.field_name] !== undefined) {
+        value = student.dynamic_data[field.field_name];
+      }
+      // Then check direct student properties
+      else if ((student as any)[field.field_name] !== undefined) {
+        value = (student as any)[field.field_name];
+      }
+      // Finally check user properties for user-related fields
+      else if (student.user && (student.user as any)[field.field_name] !== undefined) {
+        value = (student.user as any)[field.field_name];
+      }
+
+      // Only add the value if it's not undefined
+      if (value !== undefined) {
+        // Format date values for HTML date input (YYYY-MM-DD)
+        if (field.field_type === 'date' && value) {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            formData[field.field_name] = date.toISOString().split('T')[0];
+          } else {
+            formData[field.field_name] = value;
+          }
+        } else {
+          formData[field.field_name] = value;
+        }
+      }
+    });
+
+    console.log('🔍 Mapping student to form data:', {
+      student,
+      formSchema: formSchema.fields.map(f => f.field_name),
+      mappedData: formData
+    });
+
+    return formData;
+  };
+
+
+
+
+
+  // Show form not found error with option to create new form
+  if (isFormSchemaError && !isFormSchemaLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Student Form Not Found
+          </Typography>
+          <Typography variant="body2" gutterBottom>
+            The default student form could not be loaded. This might be because:
+          </Typography>
+          <Box component="ul" sx={{ pl: 2, mb: 2 }}>
+            <Typography component="li" variant="body2">
+              The form hasn't been created yet
+            </Typography>
+            <Typography component="li" variant="body2">
+              There's a connection issue with the server
+            </Typography>
+          </Box>
+        </Alert>
+        
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Card 
+              sx={{ 
+                cursor: 'pointer',
+                '&:hover': { 
+                  boxShadow: 3,
+                  backgroundColor: 'action.hover'
+                }
+              }}
+              onClick={handleEditForm}
+            >
+              <CardContent>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <EditIcon color="primary" />
+                  <Box>
+                    <Typography variant="h6">Edit Form Schema</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Access the advanced form builder to modify the student form
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" gutterBottom>
-          Students Management
+    <Box sx={{ p: 3, height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" fontWeight="bold">
+          Students
         </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddStudentClick}>
-          Add Student
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={handleEditForm}
+          >
+            Edit Form
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddStudent}
+            disabled={isFormSchemaLoading}
+          >
+            Add Student
+          </Button>
+
+
+        </Box>
       </Box>
 
-      <Box mb={3}>
+      {/* Search and Filters */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexShrink: 0 }}>
         <TextField
-          fullWidth
           placeholder="Search students..."
           value={searchTerm}
           onChange={handleSearchChange}
@@ -388,124 +384,205 @@ const StudentsPage: React.FC = () => {
             ),
             endAdornment: searchTerm && (
               <InputAdornment position="end">
-                <IconButton onClick={() => setSearchTerm('')} size="small">
+                <IconButton size="small" onClick={() => setSearchTerm('')}>
                   <ClearIcon />
                 </IconButton>
               </InputAdornment>
             ),
           }}
-          sx={{ maxWidth: 500 }}
+          sx={{ minWidth: 300 }}
         />
+        <IconButton
+          onClick={() => setFilterDrawerOpen(true)}
+          color={isFilterPinned ? 'primary' : 'default'}
+        >
+          <FilterListIcon />
+        </IconButton>
       </Box>
 
+      {/* Error Alert */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Student</TableCell>
-                <TableCell>Student ID</TableCell>
-                <TableCell>Class</TableCell>
-                <TableCell>Admission Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {students.map((student) => (
-                <TableRow key={student.id} hover>
-                  <TableCell>
-                    <Box display="flex" alignItems="center" gap={2}>
-                      <Avatar src={student.user.profile_picture}>
-                        {student.user.first_name[0]}{student.user.last_name[0]}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="subtitle2">
+
+
+      {/* Success Alert */}
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMessage(null)}>
+          {successMessage}
+        </Alert>
+      )}
+
+
+
+      {/* Students Table */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {isStudentsLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+        <>
+          {(() => {
+            const hasStudentsData = students?.data && students.data.length > 0;
+            const hasLocalStudentsData = localStudents?.students && localStudents.students.length > 0;
+            const hasAnyData = hasStudentsData || hasLocalStudentsData;
+            
+            console.log('Debug data check:', {
+              hasStudentsData,
+              hasLocalStudentsData,
+              hasAnyData,
+              studentsDataLength: students?.data?.length,
+              localStudentsDataLength: localStudents?.students?.length,
+              studentsData: students?.data,
+              localStudentsData: localStudents?.students
+            });
+            
+            return hasAnyData;
+          })() ? (
+            <StyledTable
+              columns={columns}
+              data={localStudents?.students || students?.data || []}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              total={localStudents?.total || students?.total || 0}
+              onPageChange={handlePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
+              externalVisibleColumns={tableVisibleColumns}
+              onVisibleColumnsChange={setTableVisibleColumns}
+              maxHeight="100%"
+              renderRow={(student: Student, visibleColumnIds: string[]) => (
+                <TableRow key={student.id} hover sx={{ height: '48px' }}>
+                  <TableCell sx={{ height: '48px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: 250, minWidth: 250 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Avatar sx={{ width: 32, height: 32 }}>{student.user.first_name[0]}</Avatar>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography variant="body2" fontWeight={500} sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {student.user.first_name} {student.user.last_name}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {student.user.email}
                         </Typography>
                       </Box>
                     </Box>
                   </TableCell>
-                  <TableCell>{student.student_id}</TableCell>
-                  <TableCell>
-                    {student.current_class ? (
-                      <Box>
-                        <Typography variant="body2">
-                          {student.current_class.name}
-                          {student.section && ` - ${student.section}`}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {student.academic_year}
-                        </Typography>
-                      </Box>
-                    ) : (
-                      <Typography color="text.secondary">-</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatDate(student.admission_date)}</TableCell>
-                  <TableCell>
+                  {visibleColumns
+                    .filter(col => visibleColumnIds.length === 0 || visibleColumnIds.includes(col.field_name))
+                    .map(col => (
+                      <TableCell key={col.field_name} sx={{ height: '48px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: 180, minWidth: 180 }}>
+                        {(() => {
+                          let value;
+                          // First check dynamic_data
+                          if (student.dynamic_data && student.dynamic_data[col.field_name] !== undefined) {
+                            value = student.dynamic_data[col.field_name];
+                          }
+                          // Then check direct student properties
+                          else if ((student as any)[col.field_name] !== undefined) {
+                            value = (student as any)[col.field_name];
+                          }
+                          // Finally check user properties for user-related fields
+                          else if (student.user && (student.user as any)[col.field_name] !== undefined) {
+                            value = (student.user as any)[col.field_name];
+                          }
+                          else {
+                            value = '-';
+                          }
+                          
+                          // Convert to string to avoid React warnings
+                          return String(value);
+                        })()}
+                      </TableCell>
+                    ))}
+                  <TableCell sx={{ height: '48px', width: 120, minWidth: 120 }}>
                     <Chip
                       label={student.is_active ? 'Active' : 'Inactive'}
-                      color={student.is_active ? 'success' : 'error'}
+                      color={student.is_active ? 'success' : 'default'}
                       size="small"
                     />
                   </TableCell>
-                  <TableCell>
-                    <IconButton size="small" aria-label={`Edit student ${student.user.first_name}`}>
-                      <EditIcon />
+                  <TableCell align="right" sx={{ height: '48px', width: 120, minWidth: 120 }}>
+                    <IconButton
+                      onClick={(e) => handleMenuClick(e, student)}
+                      size="small"
+                    >
+                      <MoreVertIcon />
                     </IconButton>
-                    <IconButton size="small" aria-label={`Delete student ${student.user.first_name}`}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {students.length === 0 && !loading && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Typography variant="body2" color="text.secondary">
-                      No students found
-                    </Typography>
                   </TableCell>
                 </TableRow>
               )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          component="div"
-          count={total}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-        />
-      </Paper>
+            />
+          ) : (
+            <Box sx={{ textAlign: 'center', p: 4 }}>
+              <Typography variant="h6" color="text.secondary">
+                No students found
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                {students?.data ? 'No students match your search criteria.' : 'Start by adding your first student.'}
+              </Typography>
+            </Box>
+          )}
+        </>
+        )}
+      </Box>
 
-      <AddStudentDialog 
-        open={isAddDialogVisible}
-        onClose={handleCloseAddDialog}
-        onSelectExisting={handleSelectExistingForm}
-        onSelectDynamic={handleSelectDynamicForm}
+      {/* Filter Drawer */}
+      <StudentFilterDrawer
+        open={isFilterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        schema={formSchema?.fields.filter(f => f.is_filterable) || []}
+        onApply={setFilters}
+        pinned={isFilterPinned}
       />
 
-      <StudentForm
-        open={isExistingFormVisible}
-        onClose={handleCloseExistingForm}
-        initialData={null}
-        onSave={handleSaveStudent}
-        isSaving={isSavingStudent}
+      {/* Student Form Dialog */}
+      <Dialog open={isFormOpen} onClose={handleFormClose} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {selectedStudent 
+            ? `Edit Student - ${selectedStudent.user.first_name} ${selectedStudent.user.last_name}`
+            : 'Add New Student'
+          }
+        </DialogTitle>
+        <DialogContent>
+          {formSchema ? (
+            <FormRenderer
+              schema={formSchema}
+              onSubmit={handleFormSave}
+              initialData={selectedStudent ? mapStudentToFormData(selectedStudent) : undefined}
+              onCancel={handleFormClose}
+            />
+          ) : (
+            <CircularProgress />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={() => handleEditStudent(selectedStudent!)}>
+          Edit
+        </MenuItem>
+        <MenuItem onClick={handleMenuClose}>
+          View Details
+        </MenuItem>
+        <MenuItem onClick={() => handleDeleteStudent(selectedStudent!)}>
+          Delete
+        </MenuItem>
+      </Menu>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={isDeleteDialogOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        studentName={studentToDelete ? `${studentToDelete.user.first_name} ${studentToDelete.user.last_name}` : ''}
+        isLoading={isDeletingStudent}
       />
     </Box>
   );

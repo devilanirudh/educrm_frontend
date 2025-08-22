@@ -1,60 +1,44 @@
-/**
- * Redux store configuration
- */
-
 import { configureStore } from '@reduxjs/toolkit';
+import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import { combineReducers } from '@reduxjs/toolkit';
-import { useDispatch, useSelector, TypedUseSelectorHook } from 'react-redux';
+import authReducer from './authSlice';
+import uiReducer from './uiSlice';
 
-// Slice imports
-import authSlice from './authSlice';
-import uiSlice from './uiSlice';
-
-// Persist configuration
-const persistConfig = {
-  key: 'root',
+// Configure persistence for auth slice
+const authPersistConfig = {
+  key: 'auth',
   storage,
-  whitelist: ['auth'], // Only persist auth state
-  blacklist: ['ui'], // Don't persist UI state
+  whitelist: ['isAuthenticated', 'user', 'token'], // Only persist these fields
 };
 
-// Root reducer
-const rootReducer = combineReducers({
-  auth: authSlice,
-  ui: uiSlice,
-});
+// Configure persistence for UI slice (optional)
+const uiPersistConfig = {
+  key: 'ui',
+  storage,
+  whitelist: ['theme', 'language'], // Only persist these fields
+};
 
-// Persisted reducer
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
+const persistedUiReducer = persistReducer(uiPersistConfig, uiReducer);
 
-// Configure store
 export const store = configureStore({
-  reducer: persistedReducer,
+  reducer: {
+    auth: persistedAuthReducer,
+    ui: persistedUiReducer,
+  },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: [
-          'persist/FLUSH',
-          'persist/REHYDRATE',
-          'persist/PAUSE',
-          'persist/PERSIST',
-          'persist/PURGE',
-          'persist/REGISTER',
-        ],
+        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
     }),
-  devTools: process.env.NODE_ENV !== 'production',
 });
 
-// Persistor
 export const persistor = persistStore(store);
 
-// Types
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
-// Typed hooks
 export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;

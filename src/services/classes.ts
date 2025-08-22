@@ -2,7 +2,7 @@
  * Class management service
  */
 
-import { api, buildUrl } from './api';
+import api, { buildUrl, upload } from './api';
 import { PaginatedResponse, QueryParams } from '../types/api';
 
 // Class types
@@ -10,9 +10,10 @@ export interface Class {
   id: number;
   name: string;
   section?: string;
+  stream?: string;
   grade_level: number;
   academic_year: string;
-  capacity?: number;
+  max_students?: number;
   class_teacher_id?: number;
   room_number?: string;
   is_active: boolean;
@@ -108,9 +109,10 @@ export interface TimetableSlot {
 export interface ClassCreateRequest {
   name: string;
   section?: string;
+  stream?: string;
   grade_level: number;
   academic_year: string;
-  capacity?: number;
+  max_students?: number;
   class_teacher_id?: number;
   room_number?: string;
 }
@@ -118,9 +120,10 @@ export interface ClassCreateRequest {
 export interface ClassUpdateRequest {
   name?: string;
   section?: string;
+  stream?: string;
   grade_level?: number;
   academic_year?: string;
-  capacity?: number;
+  max_students?: number;
   class_teacher_id?: number;
   room_number?: string;
   is_active?: boolean;
@@ -160,10 +163,11 @@ export interface TimetableSlotCreateRequest {
 }
 
 export interface ClassFilters extends QueryParams {
-  academic_year?: string;
-  grade_level?: number;
-  is_active?: boolean;
+  session?: string;
+  medium?: string;
   class_teacher_id?: number;
+  capacity_min?: number;
+  capacity_max?: number;
 }
 
 export interface SubjectFilters extends QueryParams {
@@ -176,188 +180,234 @@ export const classesService = {
   // Class CRUD operations
   getClasses: async (params?: ClassFilters): Promise<PaginatedResponse<Class>> => {
     const url = buildUrl('/classes', params);
-    return api.get<PaginatedResponse<Class>>(url);
+    const response = await api.get<PaginatedResponse<Class>>(url);
+    return response.data;
   },
 
   getClass: async (id: number): Promise<Class> => {
-    return api.get<Class>(`/classes/${id}`);
+    const response = await api.get<Class>(`/classes/${id}`);
+    return response.data;
   },
 
   createClass: async (data: ClassCreateRequest): Promise<Class> => {
-    return api.post<Class>('/classes', data);
+    const response = await api.post<Class>('/classes', data);
+    return response.data;
   },
 
   updateClass: async (id: number, data: ClassUpdateRequest): Promise<Class> => {
-    return api.put<Class>(`/classes/${id}`, data);
+    const response = await api.put<Class>(`/classes/${id}`, data);
+    return response.data;
   },
 
   deleteClass: async (id: number): Promise<void> => {
-    return api.delete(`/classes/${id}`);
+    const response = await api.delete(`/classes/${id}`);
+    return response.data;
   },
 
   // Class subjects
   getClassSubjects: async (id: number): Promise<any> => {
-    return api.get(`/classes/${id}/subjects`);
+    const response = await api.get(`/classes/${id}/subjects`);
+    return response.data;
   },
 
   addSubjectToClass: async (id: number, data: SubjectCreateRequest): Promise<any> => {
-    return api.post(`/classes/${id}/subjects`, data);
+    const response = await api.post(`/classes/${id}/subjects`, data);
+    return response.data;
   },
 
   removeSubjectFromClass: async (id: number, subjectId: number): Promise<void> => {
-    return api.delete(`/classes/${id}/subjects/${subjectId}`);
+    const response = await api.delete(`/classes/${id}/subjects/${subjectId}`);
+    return response.data;
   },
 
   // Class students
   getClassStudents: async (id: number): Promise<any> => {
-    return api.get(`/classes/${id}/students`);
+    const response = await api.get(`/classes/${id}/students`);
+    return response.data;
   },
 
   assignStudentsToClass: async (id: number, student_ids: number[]): Promise<any> => {
-    return api.post(`/classes/${id}/assign-students`, { student_ids });
+    const response = await api.post(`/classes/${id}/assign-students`, { student_ids });
+    return response.data;
   },
 
   removeStudentFromClass: async (id: number, studentId: number): Promise<void> => {
-    return api.delete(`/classes/${id}/students/${studentId}`);
+    const response = await api.delete(`/classes/${id}/students/${studentId}`);
+    return response.data;
   },
 
   // Class timetable
   getClassTimetable: async (id: number): Promise<any> => {
-    return api.get(`/classes/${id}/timetable`);
+    const response = await api.get(`/classes/${id}/timetable`);
+    return response.data;
   },
 
   addTimetableSlot: async (id: number, data: TimetableSlotCreateRequest): Promise<any> => {
-    return api.post(`/classes/${id}/timetable`, data);
+    const response = await api.post(`/classes/${id}/timetable`, data);
+    return response.data;
   },
 
   updateTimetableSlot: async (id: number, slotId: number, data: Partial<TimetableSlotCreateRequest>): Promise<any> => {
-    return api.put(`/classes/${id}/timetable/${slotId}`, data);
+    const response = await api.put(`/classes/${id}/timetable/${slotId}`, data);
+    return response.data;
   },
 
   deleteTimetableSlot: async (id: number, slotId: number): Promise<void> => {
-    return api.delete(`/classes/${id}/timetable/${slotId}`);
+    const response = await api.delete(`/classes/${id}/timetable/${slotId}`);
+    return response.data;
   },
 
   // Class assignments
   getClassAssignments: async (id: number, params?: { subject_id?: number; status?: string }): Promise<any[]> => {
     const url = buildUrl(`/classes/${id}/assignments`, params);
-    return api.get<any[]>(url);
+    const response = await api.get<any[]>(url);
+    return response.data;
   },
 
   // Class exams
   getClassExams: async (id: number, params?: { subject_id?: number; status?: string }): Promise<any[]> => {
     const url = buildUrl(`/classes/${id}/exams`, params);
-    return api.get<any[]>(url);
+    const response = await api.get<any[]>(url);
+    return response.data;
   },
 
   // Class attendance
   getClassAttendance: async (id: number, params?: { date?: string; subject_id?: number }): Promise<any[]> => {
     const url = buildUrl(`/classes/${id}/attendance`, params);
-    return api.get<any[]>(url);
+    const response = await api.get<any[]>(url);
+    return response.data;
   },
 
   markClassAttendance: async (id: number, data: any): Promise<any> => {
-    return api.post(`/classes/${id}/attendance`, data);
+    const response = await api.post(`/classes/${id}/attendance`, data);
+    return response.data;
   },
 
   // Class statistics
   getClassStats: async (id: number): Promise<any> => {
-    return api.get(`/classes/${id}/stats`);
+    const response = await api.get(`/classes/${id}/stats`);
+    return response.data;
+  },
+
+  getStudentsByClass: async (): Promise<any[]> => {
+    const response = await api.get('/classes/stats/students-by-class');
+    return response.data;
   },
 
   // Subject CRUD operations
   getSubjects: async (params?: SubjectFilters): Promise<PaginatedResponse<Subject>> => {
     const url = buildUrl('/subjects', params);
-    return api.get<PaginatedResponse<Subject>>(url);
+    const response = await api.get<PaginatedResponse<Subject>>(url);
+    return response.data;
   },
 
   getSubject: async (id: number): Promise<Subject> => {
-    return api.get<Subject>(`/subjects/${id}`);
+    const response = await api.get<Subject>(`/subjects/${id}`);
+    return response.data;
   },
 
   createSubject: async (data: SubjectCreateRequest): Promise<Subject> => {
-    return api.post<Subject>('/subjects', data);
+    const response = await api.post<Subject>('/subjects', data);
+    return response.data;
   },
 
   updateSubject: async (id: number, data: SubjectUpdateRequest): Promise<Subject> => {
-    return api.put<Subject>(`/subjects/${id}`, data);
+    const response = await api.put<Subject>(`/subjects/${id}`, data);
+    return response.data;
   },
 
   deleteSubject: async (id: number): Promise<void> => {
-    return api.delete(`/subjects/${id}`);
+    const response = await api.delete(`/subjects/${id}`);
+    return response.data;
   },
 
   // Subject classes
   getSubjectClasses: async (id: number): Promise<any[]> => {
-    return api.get<any[]>(`/subjects/${id}/classes`);
+    const response = await api.get<any[]>(`/subjects/${id}/classes`);
+    return response.data;
   },
 
   // Subject teachers
   getSubjectTeachers: async (id: number): Promise<any[]> => {
-    return api.get<any[]>(`/subjects/${id}/teachers`);
+    const response = await api.get<any[]>(`/subjects/${id}/teachers`);
+    return response.data;
   },
 
   assignTeacherToSubject: async (id: number, teacher_id: number): Promise<any> => {
-    return api.post(`/subjects/${id}/assign-teacher`, { teacher_id });
+    const response = await api.post(`/subjects/${id}/assign-teacher`, { teacher_id });
+    return response.data;
   },
 
   // Bulk operations
   bulkUpdateClasses: async (class_ids: number[], data: Partial<ClassUpdateRequest>): Promise<any> => {
-    return api.post('/classes/bulk-update', { class_ids, data });
+    const response = await api.post('/classes/bulk-update', { class_ids, data });
+    return response.data;
   },
 
   bulkDeleteClasses: async (class_ids: number[]): Promise<any> => {
-    return api.post('/classes/bulk-delete', { class_ids });
+    const response = await api.post('/classes/bulk-delete', { class_ids });
+    return response.data;
   },
 
   bulkUpdateSubjects: async (subject_ids: number[], data: Partial<SubjectUpdateRequest>): Promise<any> => {
-    return api.post('/subjects/bulk-update', { subject_ids, data });
+    const response = await api.post('/subjects/bulk-update', { subject_ids, data });
+    return response.data;
   },
 
   bulkDeleteSubjects: async (subject_ids: number[]): Promise<any> => {
-    return api.post('/subjects/bulk-delete', { subject_ids });
+    const response = await api.post('/subjects/bulk-delete', { subject_ids });
+    return response.data;
   },
 
   // Import/Export
   exportClasses: async (params?: ClassFilters): Promise<Blob> => {
     const url = buildUrl('/classes/export', params);
-    return api.get(url, { responseType: 'blob' });
+    const response = await api.get(url, { responseType: 'blob' });
+    return response.data;
   },
 
   importClasses: async (file: File): Promise<any> => {
-    return api.upload('/classes/import', file);
+    const response = await upload('/classes/import', file);
+    return response.data;
   },
 
   exportSubjects: async (params?: SubjectFilters): Promise<Blob> => {
     const url = buildUrl('/subjects/export', params);
-    return api.get(url, { responseType: 'blob' });
+    const response = await api.get(url, { responseType: 'blob' });
+    return response.data;
   },
 
   importSubjects: async (file: File): Promise<any> => {
-    return api.upload('/subjects/import', file);
+    const response = await upload('/subjects/import', file);
+    return response.data;
   },
 
   // Academic year operations
   promoteClass: async (id: number, data: { target_academic_year: string; target_grade_level?: number }): Promise<any> => {
-    return api.post(`/classes/${id}/promote`, data);
+    const response = await api.post(`/classes/${id}/promote`, data);
+    return response.data;
   },
 
   // Class reports
   generateClassReport: async (id: number, report_type: string, params?: any): Promise<Blob> => {
     const url = buildUrl(`/classes/${id}/reports/${report_type}`, params);
-    return api.get(url, { responseType: 'blob' });
+    const response = await api.get(url, { responseType: 'blob' });
+    return response.data;
   },
 
   // Timetable management
   generateTimetable: async (id: number, data: any): Promise<any> => {
-    return api.post(`/classes/${id}/generate-timetable`, data);
+    const response = await api.post(`/classes/${id}/generate-timetable`, data);
+    return response.data;
   },
 
   validateTimetable: async (id: number): Promise<any> => {
-    return api.get(`/classes/${id}/validate-timetable`);
+    const response = await api.get(`/classes/${id}/validate-timetable`);
+    return response.data;
   },
 
   copyTimetable: async (source_class_id: number, target_class_id: number): Promise<any> => {
-    return api.post('/classes/copy-timetable', { source_class_id, target_class_id });
+    const response = await api.post('/classes/copy-timetable', { source_class_id, target_class_id });
+    return response.data;
   },
 };

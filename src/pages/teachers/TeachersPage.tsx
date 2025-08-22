@@ -1,17 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
   Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   TextField,
   InputAdornment,
   IconButton,
@@ -19,49 +11,64 @@ import {
   Avatar,
   CircularProgress,
   Alert,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Grid,
+  TableRow,
+  TableCell,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   Clear as ClearIcon,
+  FilterList as FilterListIcon,
+  MoreVert as MoreVertIcon,
+  PushPin as PushPinIcon,
+  Create as CreateIcon,
 } from '@mui/icons-material';
 import { teachersService, Teacher } from '../../services/teachers';
+import TeacherFilterDrawer from '../../components/teachers/TeacherFilterDrawer';
+import FormRenderer from '../../components/form-builder/FormRenderer';
+import { useTeachers } from '../../hooks/useTeachers';
+import { useForm } from '../../hooks/useForm';
+import StyledCard from '../../components/common/StyledCard';
+import StyledTable from '../../components/common/StyledTable';
 
 const TeachersPage: React.FC = () => {
   const navigate = useNavigate();
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, any>>({});
+    const [isFilterDrawerOpen, setFilterDrawerOpen] = useState(false);
+    const [isFilterPinned, setFilterPinned] = useState(false);
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadTeachers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await teachersService.getTeachers({
-        page: page + 1,
-        per_page: rowsPerPage,
-        search: searchTerm || undefined,
-      });
-      
-      setTeachers(response.data);
-      setTotal(response.total);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load teachers');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { teachers, isTeachersLoading, createTeacher, updateTeacher } = useTeachers({
+    page,
+    per_page: rowsPerPage,
+    search: searchTerm || undefined,
+    ...filters,
+  });
 
-  useEffect(() => {
-    loadTeachers();
-  }, [page, rowsPerPage, searchTerm]);
+  const { formSchema, isFormSchemaLoading, formSchemaError, isFormSchemaError } = useForm('teacher_form');
+
+  const visibleColumns = useMemo(() => {
+    return formSchema?.fields.filter(field => field.is_visible_in_listing) || [];
+  }, [formSchema]);
+
+  const columns = useMemo(() => [
+    { id: 'teacher', label: 'Teacher', minWidth: 250 },
+    ...visibleColumns.map(col => ({ id: col.field_name, label: col.label, minWidth: 150 })),
+    { id: 'status', label: 'Status', minWidth: 100 },
+    { id: 'actions', label: 'Actions', align: 'right' as const, minWidth: 100 },
+  ], [visibleColumns]);
 
   const handlePageChange = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -78,20 +85,137 @@ const TeachersPage: React.FC = () => {
   };
 
   const handleAddTeacher = () => {
-    navigate('/form-builder');
+    setSelectedTeacher(null);
+    setFormOpen(true);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+  const handleEditTeacher = (teacher: Teacher) => {
+    setSelectedTeacher(teacher);
+    setFormOpen(true);
+    handleMenuClose();
   };
 
-  if (loading && teachers.length === 0) {
+  const handleFormClose = () => {
+    setFormOpen(false);
+    setSelectedTeacher(null);
+  };
+
+  const handleFormSave = async (data: any) => {
+    try {
+      if (selectedTeacher) {
+        updateTeacher({ id: selectedTeacher.id, data });
+      } else {
+        createTeacher(data);
+      }
+      handleFormClose();
+    } catch (err: any) {
+      setError(err.message || 'Failed to save teacher');
+    }
+  };
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, teacher: Teacher) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedTeacher(teacher);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedTeacher(null);
+  };
+
+  // Show form not found error with option to create new form
+  if (isFormSchemaError && !isFormSchemaLoading) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4" gutterBottom>
+            Teachers Management
+          </Typography>
+        </Box>
+        
+        <StyledCard sx={{ p: 4, textAlign: 'center', maxWidth: 600, mx: 'auto' }}>
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Teacher Form Not Available
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              The teacher form template could not be found. To manage teachers, you need to create a form template first.
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              A form template defines the fields that will be used for teacher registration and data collection.
+            </Typography>
+          </Alert>
+          
+          <Box sx={{ mt: 3 }}>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<CreateIcon />}
+              onClick={() => navigate('/form-builder?type=teacher&key=teacher_form')}
+              sx={{ mr: 2 }}
+            >
+              Create Teacher Form
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={() => window.location.reload()}
+            >
+              Refresh Page
+            </Button>
+          </Box>
+        </StyledCard>
+      </Box>
+    );
+  }
+
+  if ((isTeachersLoading && !teachers?.data.length) || isFormSchemaLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
       </Box>
     );
   }
+
+  const renderRow = (row: Teacher) => (
+    <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
+      <TableCell>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Avatar src={row.user.profile_picture}>
+            {row.user.first_name[0]}{row.user.last_name[0]}
+          </Avatar>
+          <Box>
+            <Typography variant="subtitle2">
+              {row.user.first_name} {row.user.last_name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {row.user.email}
+            </Typography>
+          </Box>
+        </Box>
+      </TableCell>
+      {visibleColumns.map(col => (
+        <TableCell key={col.field_name}>
+          {row.dynamic_data?.[col.field_name] || '-'}
+        </TableCell>
+      ))}
+      <TableCell>
+        <Chip
+          label={row.is_active ? 'Active' : 'Inactive'}
+          color={row.is_active ? 'success' : 'error'}
+          size="small"
+        />
+      </TableCell>
+      <TableCell align="right">
+        <IconButton
+          size="small"
+          onClick={(e) => handleMenuClick(e, row)}
+        >
+          <MoreVertIcon />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  );
 
   return (
     <Box sx={{ p: 3 }}>
@@ -104,29 +228,44 @@ const TeachersPage: React.FC = () => {
         </Button>
       </Box>
 
-      <Box mb={3}>
-        <TextField
-          fullWidth
-          placeholder="Search teachers..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-            endAdornment: searchTerm && (
-              <InputAdornment position="end">
-                <IconButton onClick={() => setSearchTerm('')} size="small">
-                  <ClearIcon />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-          sx={{ maxWidth: 500 }}
-        />
-      </Box>
+      <StyledCard sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} justifyContent="space-between" alignItems="center">
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              placeholder="Search teachers by name, email, or ID..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm && (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setSearchTerm('')} size="small">
+                      <ClearIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item>
+                        <Button
+                          variant="outlined"
+                          startIcon={<FilterListIcon />}
+                          onClick={() => setFilterDrawerOpen(true)}
+                        >
+                          Filters
+                        </Button>
+                        <IconButton onClick={() => setFilterPinned(!isFilterPinned)}>
+                          <PushPinIcon />
+                        </IconButton>
+          </Grid>
+        </Grid>
+      </StyledCard>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
@@ -134,93 +273,53 @@ const TeachersPage: React.FC = () => {
         </Alert>
       )}
 
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Teacher</TableCell>
-                <TableCell>Teacher ID</TableCell>
-                <TableCell>Subject(s)</TableCell>
-                <TableCell>Joining Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {teachers.map((teacher) => (
-                <TableRow key={teacher.id} hover>
-                  <TableCell>
-                    <Box display="flex" alignItems="center" gap={2}>
-                      <Avatar src={teacher.user.profile_picture}>
-                        {teacher.user.first_name[0]}{teacher.user.last_name[0]}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="subtitle2">
-                          {teacher.user.first_name} {teacher.user.last_name}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {teacher.user.email}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>{teacher.employee_id}</TableCell>
-                  <TableCell>
-                    {teacher.subjects && teacher.subjects.length > 0 ? (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {teacher.subjects.slice(0, 2).map((subject) => (
-                          <Chip key={subject.id} label={subject.name} size="small" />
-                        ))}
-                        {teacher.subjects.length > 2 && (
-                          <Chip label={`+${teacher.subjects.length - 2}`} size="small" />
-                        )}
-                      </Box>
-                    ) : (
-                      <Typography color="text.secondary">-</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatDate(teacher.hire_date)}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={teacher.is_active ? 'Active' : 'Inactive'}
-                      color={teacher.is_active ? 'success' : 'error'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton size="small">
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton size="small">
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {teachers.length === 0 && !loading && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Typography variant="body2" color="text.secondary">
-                      No teachers found
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          component="div"
-          count={total}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-        />
-      </Paper>
+      <StyledTable
+        columns={columns}
+        data={teachers?.data || []}
+        total={teachers?.total || 0}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        onPageChange={handlePageChange}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        renderRow={renderRow}
+      />
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={() => navigate(`/teachers/${selectedTeacher?.id}`)}>Profile</MenuItem>
+        <MenuItem onClick={() => handleEditTeacher(selectedTeacher!)}>Edit</MenuItem>
+        <MenuItem onClick={() => teachersService.generateTeacherCard(selectedTeacher!.id)}>ID Card</MenuItem>
+        <MenuItem onClick={() => navigate(`/teachers/${selectedTeacher?.id}/assign-class`)}>Assign Class</MenuItem>
+        <MenuItem onClick={() => navigate(`/teachers/${selectedTeacher?.id}/schedule`)}>View Schedule</MenuItem>
+        <MenuItem onClick={() => teachersService.generatePdf(selectedTeacher!.id)}>Generate PDF</MenuItem>
+      </Menu>
+
+            <TeacherFilterDrawer
+              open={isFilterDrawerOpen}
+              onClose={() => setFilterDrawerOpen(false)}
+              schema={formSchema?.fields.filter(f => f.is_filterable) || []}
+              onApply={setFilters}
+              pinned={isFilterPinned}
+            />
+
+      <Dialog open={isFormOpen} onClose={handleFormClose} maxWidth="md" fullWidth>
+        <DialogTitle>{selectedTeacher ? 'Edit Teacher' : 'Add New Teacher'}</DialogTitle>
+        <DialogContent>
+          {formSchema ? (
+            <FormRenderer
+              schema={formSchema}
+              onSubmit={handleFormSave}
+              initialData={selectedTeacher?.dynamic_data}
+              onCancel={handleFormClose}
+            />
+          ) : (
+            <CircularProgress />
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

@@ -1,86 +1,83 @@
-import React from 'react';
-import { useFormBuilderStore } from '../../store/useFormBuilderStore';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { Box, Paper, Typography } from '@mui/material';
-import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
+import React from "react";
+import { useDroppable } from "@dnd-kit/core";
+import { Box, Typography, Paper, Chip } from "@mui/material";
+import { useFormBuilderStore } from "../../store/useFormBuilderStore";
+import { FormField } from "./FormField";
 
-function SortableItem({ id, label, type, selected, onClick }: { id: string; label: string; type: string; selected: boolean; onClick: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-  
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    cursor: 'grab',
+const Canvas: React.FC = () => {
+  const { schema, moveField, selectField } = useFormBuilderStore();
+  const { isOver, setNodeRef } = useDroppable({
+    id: "canvas",
+  });
+
+  // Define base field names that cannot be deleted
+  const baseFieldNames = [
+    'student_id', 'admission_date', 'academic_year', 'roll_number', 
+    'section', 'blood_group', 'transportation_mode', 'is_hosteller'
+  ];
+
+  const isBaseField = (fieldName: string) => {
+    return baseFieldNames.includes(fieldName);
   };
 
   return (
     <Paper
       ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      onClick={onClick}
-      elevation={selected ? 4 : 1}
+      elevation={1}
       sx={{
-        p: 2,
-        mb: 1,
-        borderColor: selected ? 'primary.main' : 'transparent',
-        borderWidth: 2,
-        borderStyle: 'solid',
-        '&:hover': {
-          borderColor: 'primary.light',
-        },
+        p: 3,
+        bgcolor: isOver ? 'primary.50' : 'white',
+        minHeight: 600,
+        borderRadius: 2,
+        border: isOver ? 2 : 1,
+        borderColor: isOver ? 'primary.main' : 'divider',
+        borderStyle: 'dashed',
       }}
     >
-      <Typography variant="subtitle1">{label}</Typography>
-      <Typography variant="caption" color="text.secondary">{type}</Typography>
-    </Paper>
-  );
-}
-
-export default function Canvas() {
-  const sensors = useSensors(useSensor(PointerSensor));
-  const { schema, moveField, selectField, selectedId } = useFormBuilderStore();
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = schema.fields.findIndex(f => f.id === String(active.id));
-      const newIndex = schema.fields.findIndex(f => f.id === String(over.id));
-      moveField(oldIndex, newIndex);
-    }
-  };
-
-  return (
-    <Box sx={{ flex: 1, p: 3, backgroundColor: 'action.hover', overflowY: 'auto' }}>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-        modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
-      >
-        <SortableContext items={schema.fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
-          {schema.fields.map(f => (
-            <SortableItem
-              key={f.id}
-              id={f.id}
-              label={f.label}
-              type={f.type}
-              selected={selectedId === f.id}
-              onClick={() => selectField(f.id)}
+      {schema.fields.map((field, index) => (
+        <Box key={field.id} sx={{ position: 'relative' }}>
+          <FormField
+            field={field}
+            index={index}
+            moveField={moveField}
+            onSelect={() => selectField(field.id)}
+            isBaseField={isBaseField(field.field_name)}
+          />
+          {isBaseField(field.field_name) && (
+            <Chip
+              label="Base Field"
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                zIndex: 1,
+                fontSize: '0.7rem',
+                height: 20
+              }}
             />
-          ))}
-        </SortableContext>
-      </DndContext>
+          )}
+        </Box>
+      ))}
       {schema.fields.length === 0 && (
-        <Box sx={{ textAlign: 'center', p: 4, border: '2px dashed', borderColor: 'divider', borderRadius: 1 }}>
-          <Typography color="text.secondary">
-            Click a field in the left palette to add it here.
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            color: 'text.secondary',
+          }}
+        >
+          <Typography variant="body1">
+            Drop fields here to build your form
           </Typography>
         </Box>
       )}
-    </Box>
+    </Paper>
   );
-}
+};
+
+export default Canvas;

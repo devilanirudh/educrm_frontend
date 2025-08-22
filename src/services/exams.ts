@@ -1,80 +1,39 @@
-/**
- * Exam management service
- */
-
-import { api, buildUrl } from './api';
-import { PaginatedResponse, QueryParams } from '../types/api';
-
-// Exam types
-export interface Exam {
-  id: number;
-  name: string;
-  exam_id: string;
-  class: {
-    id: number;
-    name: string;
-  };
-  subjects: Array<{
-    id: number;
-    name: string;
-  }>;
-  exam_date: string;
-  status: 'Upcoming' | 'Ongoing' | 'Completed' | 'Cancelled';
-  description?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ExamCreateRequest {
-  name: string;
-  class_id: number;
-  subject_ids: number[];
-  exam_date: string;
-  status: 'Upcoming' | 'Ongoing' | 'Completed' | 'Cancelled';
-  description?: string;
-}
-
-export interface ExamUpdateRequest {
-  name?: string;
-  class_id?: number;
-  subject_ids?: number[];
-  exam_date?: string;
-  status?: 'Upcoming' | 'Ongoing' | 'Completed' | 'Cancelled';
-  description?: string;
-}
-
-export interface ExamFilters extends QueryParams {
-  class_id?: number;
-  subject_id?: number;
-  status?: 'Upcoming' | 'Ongoing' | 'Completed' | 'Cancelled';
-  exam_date_from?: string;
-  exam_date_to?: string;
-}
+import api from './api';
+import { Exam } from '../types/exams';
+import { PaginatedResponse } from '../types/api';
 
 export const examsService = {
-  // Get all exams with pagination and filters
-  getExams: async (params?: ExamFilters): Promise<PaginatedResponse<Exam>> => {
-    const url = buildUrl('/exams', params);
-    return api.get<PaginatedResponse<Exam>>(url);
+  getExams: async (params: { page: number; per_page: number; search?: string }): Promise<PaginatedResponse<Exam>> => {
+    const response = await api.get<PaginatedResponse<Exam>>('/exams', { params });
+    return response.data;
   },
-
-  // Get exam by ID
-  getExam: async (id: number): Promise<Exam> => {
-    return api.get<Exam>(`/exams/${id}`);
+  deleteExam: async (id: number) => {
+    const response = await api.delete(`/exams/${id}`);
+    return response.data;
   },
-
-  // Create new exam
-  createExam: async (data: ExamCreateRequest): Promise<Exam> => {
-    return api.post<Exam>('/exams', data);
+  getTerms: async () => {
+    const response = await api.get('/exams/terms');
+    return response.data;
   },
-
-  // Update exam
-  updateExam: async (id: number, data: ExamUpdateRequest): Promise<Exam> => {
-    return api.put<Exam>(`/exams/${id}`, data);
+  createTerm: async (data: { name: string; academic_year: string }) => {
+    const response = await api.post('/exams/terms', data);
+    return response.data;
   },
-
-  // Delete exam
-  deleteExam: async (id: number): Promise<void> => {
-    return api.delete(`/exams/${id}`);
+  
+  createDateSheet: async (data: any) => {
+    const response = await api.post('/datesheets', data);
+    return response.data;
+  },
+  getDateSheet: async (classId: number, termId: number) => {
+    const response = await api.get(`/datesheets/${classId}/${termId}`);
+    return response.data;
+  },
+  updateDateSheet: async (id: number, data: any) => {
+    const response = await api.put(`/datesheets/${id}`, data);
+    return response.data;
+  },
+  publishDateSheet: async (id: number) => {
+    const response = await api.post(`/datesheets/${id}/publish`);
+    return response.data;
   },
 };

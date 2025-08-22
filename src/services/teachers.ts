@@ -2,7 +2,7 @@
  * Teacher management service
  */
 
-import { api, buildUrl } from './api';
+import api, { buildUrl, upload } from './api';
 import { PaginatedResponse, QueryParams } from '../types/api';
 
 // Teacher types
@@ -35,6 +35,7 @@ export interface Teacher {
   publications?: string;
   created_at: string;
   updated_at: string;
+  dynamic_data?: Record<string, any>;
   
   // Relationships
   user: {
@@ -142,6 +143,7 @@ export interface TeacherUpdateRequest {
 }
 
 export interface TeacherFilters extends QueryParams {
+  limit?: number;
   department?: string;
   designation?: string;
   employment_type?: string;
@@ -151,116 +153,139 @@ export interface TeacherFilters extends QueryParams {
   experience_max?: number;
   hire_date_from?: string;
   hire_date_to?: string;
+  filters?: Record<string, any>;
 }
 
 export const teachersService = {
   // Get all teachers with pagination and filters
   getTeachers: async (params?: TeacherFilters): Promise<PaginatedResponse<Teacher>> => {
     const url = buildUrl('/teachers', params);
-    return api.get<PaginatedResponse<Teacher>>(url);
+    const response = await api.get<PaginatedResponse<Teacher>>(url);
+    return response.data;
   },
 
   // Get teacher by ID
   getTeacher: async (id: number): Promise<Teacher> => {
-    return api.get<Teacher>(`/teachers/${id}`);
+    const response = await api.get<Teacher>(`/teachers/${id}`);
+    return response.data;
   },
 
   // Create new teacher
   createTeacher: async (data: TeacherCreateRequest): Promise<Teacher> => {
-    return api.post<Teacher>('/teachers', data);
+    const response = await api.post<Teacher>('/teachers', data);
+    return response.data;
   },
 
   // Update teacher
   updateTeacher: async (id: number, data: TeacherUpdateRequest): Promise<Teacher> => {
-    return api.put<Teacher>(`/teachers/${id}`, data);
+    const response = await api.put<Teacher>(`/teachers/${id}`, data);
+    return response.data;
   },
 
   // Delete teacher
   deleteTeacher: async (id: number): Promise<void> => {
-    return api.delete(`/teachers/${id}`);
+    const response = await api.delete(`/teachers/${id}`);
+    return response.data;
   },
 
   // Get teacher subjects
   getTeacherSubjects: async (id: number): Promise<any[]> => {
-    return api.get<any[]>(`/teachers/${id}/subjects`);
+    const response = await api.get<any[]>(`/teachers/${id}/subjects`);
+    return response.data;
   },
 
   // Get teacher classes
   getTeacherClasses: async (id: number): Promise<any[]> => {
-    return api.get<any[]>(`/teachers/${id}/classes`);
+    const response = await api.get<any[]>(`/teachers/${id}/classes`);
+    return response.data;
   },
 
   // Get teacher timetable
   getTeacherTimetable: async (id: number): Promise<any> => {
-    return api.get(`/teachers/${id}/timetable`);
+    const response = await api.get(`/teachers/${id}/timetable`);
+    return response.data;
   },
 
   // Get teacher attendance
   getTeacherAttendance: async (id: number, params?: { start_date?: string; end_date?: string }): Promise<any[]> => {
     const url = buildUrl(`/teachers/${id}/attendance`, params);
-    return api.get<any[]>(url);
+    const response = await api.get<any[]>(url);
+    return response.data;
   },
 
   // Get teacher assignments
   getTeacherAssignments: async (id: number, params?: { status?: string; class_id?: number }): Promise<any[]> => {
     const url = buildUrl(`/teachers/${id}/assignments`, params);
-    return api.get<any[]>(url);
+    const response = await api.get<any[]>(url);
+    return response.data;
   },
 
   // Get teacher exams
   getTeacherExams: async (id: number, params?: { status?: string; class_id?: number }): Promise<any[]> => {
     const url = buildUrl(`/teachers/${id}/exams`, params);
-    return api.get<any[]>(url);
+    const response = await api.get<any[]>(url);
+    return response.data;
   },
 
   // Teacher performance
   getTeacherPerformance: async (id: number, params?: { period?: string }): Promise<any[]> => {
     const url = buildUrl(`/teachers/${id}/performance`, params);
-    return api.get<any[]>(url);
+    const response = await api.get<any[]>(url);
+    return response.data;
   },
 
   // Add teacher performance evaluation
   addPerformanceEvaluation: async (id: number, data: any): Promise<any> => {
-    return api.post(`/teachers/${id}/performance`, data);
+    const response = await api.post(`/teachers/${id}/performance`, data);
+    return response.data;
   },
 
   // Teacher qualifications
   getTeacherQualifications: async (id: number): Promise<any[]> => {
-    return api.get<any[]>(`/teachers/${id}/qualifications`);
+    const response = await api.get<any[]>(`/teachers/${id}/qualifications`);
+    return response.data;
   },
 
   addQualification: async (id: number, data: any): Promise<any> => {
-    return api.post(`/teachers/${id}/qualifications`, data);
+    const response = await api.post(`/teachers/${id}/qualifications`, data);
+    return response.data;
   },
 
   updateQualification: async (id: number, qualificationId: number, data: any): Promise<any> => {
-    return api.put(`/teachers/${id}/qualifications/${qualificationId}`, data);
+    const response = await api.put(`/teachers/${id}/qualifications/${qualificationId}`, data);
+    return response.data;
   },
 
   deleteQualification: async (id: number, qualificationId: number): Promise<void> => {
-    return api.delete(`/teachers/${id}/qualifications/${qualificationId}`);
+    const response = await api.delete(`/teachers/${id}/qualifications/${qualificationId}`);
+    return response.data;
   },
 
   // Teacher training
   getTeacherTraining: async (id: number): Promise<any[]> => {
-    return api.get<any[]>(`/teachers/${id}/training`);
+    const response = await api.get<any[]>(`/teachers/${id}/training`);
+    return response.data;
   },
 
   addTraining: async (id: number, data: any): Promise<any> => {
-    return api.post(`/teachers/${id}/training`, data);
+    const response = await api.post(`/teachers/${id}/training`, data);
+    return response.data;
   },
 
   updateTraining: async (id: number, trainingId: number, data: any): Promise<any> => {
-    return api.put(`/teachers/${id}/training/${trainingId}`, data);
+    const response = await api.put(`/teachers/${id}/training/${trainingId}`, data);
+    return response.data;
   },
 
   deleteTraining: async (id: number, trainingId: number): Promise<void> => {
-    return api.delete(`/teachers/${id}/training/${trainingId}`);
+    const response = await api.delete(`/teachers/${id}/training/${trainingId}`);
+    return response.data;
   },
 
   // Teacher documents
   getTeacherDocuments: async (id: number): Promise<any[]> => {
-    return api.get<any[]>(`/teachers/${id}/documents`);
+    const response = await api.get<any[]>(`/teachers/${id}/documents`);
+    return response.data;
   },
 
   uploadDocument: async (id: number, file: File, documentType: string, documentName: string): Promise<any> => {
@@ -268,84 +293,112 @@ export const teachersService = {
     formData.append('file', file);
     formData.append('document_type', documentType);
     formData.append('document_name', documentName);
-    return api.post(`/teachers/${id}/documents`, formData, {
+    const response = await api.post(`/teachers/${id}/documents`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
+    return response.data;
   },
 
   deleteDocument: async (id: number, documentId: number): Promise<void> => {
-    return api.delete(`/teachers/${id}/documents/${documentId}`);
+    const response = await api.delete(`/teachers/${id}/documents/${documentId}`);
+    return response.data;
   },
 
   // Teacher leave management
   getTeacherLeaves: async (id: number, params?: { status?: string; leave_type?: string }): Promise<any[]> => {
     const url = buildUrl(`/teachers/${id}/leaves`, params);
-    return api.get<any[]>(url);
+    const response = await api.get<any[]>(url);
+    return response.data;
   },
 
   applyLeave: async (id: number, data: any): Promise<any> => {
-    return api.post(`/teachers/${id}/leaves`, data);
+    const response = await api.post(`/teachers/${id}/leaves`, data);
+    return response.data;
   },
 
   updateLeave: async (id: number, leaveId: number, data: any): Promise<any> => {
-    return api.put(`/teachers/${id}/leaves/${leaveId}`, data);
+    const response = await api.put(`/teachers/${id}/leaves/${leaveId}`, data);
+    return response.data;
   },
 
   approveLeave: async (id: number, leaveId: number): Promise<any> => {
-    return api.post(`/teachers/${id}/leaves/${leaveId}/approve`);
+    const response = await api.post(`/teachers/${id}/leaves/${leaveId}/approve`);
+    return response.data;
   },
 
   rejectLeave: async (id: number, leaveId: number, reason: string): Promise<any> => {
-    return api.post(`/teachers/${id}/leaves/${leaveId}/reject`, { reason });
+    const response = await api.post(`/teachers/${id}/leaves/${leaveId}/reject`, { reason });
+    return response.data;
   },
 
   // Bulk operations
   bulkUpdateTeachers: async (teacher_ids: number[], data: Partial<TeacherUpdateRequest>): Promise<any> => {
-    return api.post('/teachers/bulk-update', { teacher_ids, data });
+    const response = await api.post('/teachers/bulk-update', { teacher_ids, data });
+    return response.data;
   },
 
   bulkDeleteTeachers: async (teacher_ids: number[]): Promise<any> => {
-    return api.post('/teachers/bulk-delete', { teacher_ids });
+    const response = await api.post('/teachers/bulk-delete', { teacher_ids });
+    return response.data;
   },
 
   // Import/Export
   exportTeachers: async (params?: TeacherFilters): Promise<Blob> => {
     const url = buildUrl('/teachers/export', params);
-    return api.get(url, { responseType: 'blob' });
+    const response = await api.get(url, { responseType: 'blob' });
+    return response.data;
   },
 
   importTeachers: async (file: File): Promise<any> => {
-    return api.upload('/teachers/import', file);
+    const response = await upload('/teachers/import', file);
+    return response.data;
   },
 
   // Teacher statistics
   getTeacherStats: async (params?: { department?: string; employment_type?: string }): Promise<any> => {
     const url = buildUrl('/teachers/stats', params);
-    return api.get(url);
+    const response = await api.get(url);
+    return response.data;
+  },
+
+  getTeacherHeadcountTrend: async (): Promise<any> => {
+    const response = await api.get('/teachers/stats/headcount-trend');
+    return response.data;
   },
 
   // Generate teacher ID card
   generateTeacherCard: async (id: number): Promise<Blob> => {
-    return api.get(`/teachers/${id}/id-card`, { responseType: 'blob' });
+    const response = await api.get(`/teachers/${id}/id-card`, { responseType: 'blob' });
+    return response.data;
   },
 
   // Upload teacher photo
   uploadTeacherPhoto: async (id: number, file: File): Promise<any> => {
-    return api.upload(`/teachers/${id}/photo`, file);
+    const response = await upload(`/teachers/${id}/photo`, file);
+    return response.data;
   },
 
   // Get teacher dashboard data
   getTeacherDashboard: async (id: number): Promise<any> => {
-    return api.get(`/teachers/${id}/dashboard`);
+    const response = await api.get(`/teachers/${id}/dashboard`);
+    return response.data;
   },
 
   // Assign subjects to teacher
   assignSubjects: async (id: number, subject_ids: number[]): Promise<any> => {
-    return api.post(`/teachers/${id}/assign-subjects`, { subject_ids });
+    const response = await api.post(`/teachers/${id}/assign-subjects`, { subject_ids });
+    return response.data;
   },
 
   // Assign classes to teacher
   assignClasses: async (id: number, class_ids: number[]): Promise<any> => {
-    return api.post(`/teachers/${id}/assign-classes`, { class_ids });
+    const response = await api.post(`/teachers/${id}/assign-classes`, { class_ids });
+    return response.data;
+  },
+
+  // Generate PDF
+  generatePdf: async (id: number): Promise<Blob> => {
+    const response = await api.get(`/teachers/${id}/pdf`, { responseType: 'blob' });
+    return response.data;
   },
 };

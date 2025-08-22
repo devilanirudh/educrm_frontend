@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -15,51 +15,43 @@ import {
   TextField,
   InputAdornment,
   IconButton,
+  Chip,
   CircularProgress,
   Alert,
-} from '@mui/material';
+    Menu,
+    MenuItem,
+    Grid,
+  } from '@mui/material';
 import {
   Search as SearchIcon,
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   Clear as ClearIcon,
+  FilterList as FilterListIcon,
+  MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
-import { classesService, Class } from '../../services/classes';
+import { Class } from '../../services/classes';
+import ClassFilterDrawer from '../../components/classes/ClassFilterDrawer';
+import ClassForm from '../../components/classes/ClassForm';
+import { useClasses } from '../../hooks/useClasses';
 
 const ClassesPage: React.FC = () => {
   const navigate = useNavigate();
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [isFilterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadClasses = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await classesService.getClasses({
-        page: page + 1,
-        per_page: rowsPerPage,
-        search: searchTerm || undefined,
-      });
-      
-      setClasses(response.data);
-      setTotal(response.total);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load classes');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadClasses();
-  }, [page, rowsPerPage, searchTerm]);
+  const { classes, isClassesLoading, createClass, updateClass, deleteClass } = useClasses({
+    page,
+    per_page: rowsPerPage,
+    search: searchTerm || undefined,
+    ...filters,
+  });
 
   const handlePageChange = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -76,10 +68,56 @@ const ClassesPage: React.FC = () => {
   };
 
   const handleAddClass = () => {
-    navigate('/form-builder');
+    setSelectedClass(null);
+    setFormOpen(true);
   };
 
-  if (loading && classes.length === 0) {
+  const handleEditClass = (classItem: Class) => {
+    setSelectedClass(classItem);
+    setFormOpen(true);
+    handleMenuClose();
+  };
+
+  const handleFormClose = () => {
+    setFormOpen(false);
+    setSelectedClass(null);
+  };
+
+  const handleFormSave = async (data: any) => {
+    try {
+      if (selectedClass) {
+        updateClass({ id: selectedClass.id, data });
+      } else {
+        createClass(data);
+      }
+      handleFormClose();
+    } catch (err: any) {
+      setError(err.message || 'Failed to save class');
+    }
+  };
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, classItem: Class) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedClass(classItem);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedClass(null);
+  };
+
+  const handleArchiveRestore = async () => {
+    if (selectedClass) {
+      try {
+        deleteClass(selectedClass.id);
+      } catch (err: any) {
+        setError(err.message || 'Failed to archive/restore class');
+      }
+    }
+    handleMenuClose();
+  };
+
+  if (isClassesLoading && !classes?.data.length) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -89,38 +127,50 @@ const ClassesPage: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" gutterBottom>
-          Classes Management
-        </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddClass}>
-          Add Class
-        </Button>
-      </Box>
-
-      <Box mb={3}>
-        <TextField
-          fullWidth
-          placeholder="Search classes..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-            endAdornment: searchTerm && (
-              <InputAdornment position="end">
-                <IconButton onClick={() => setSearchTerm('')} size="small">
-                  <ClearIcon />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-          sx={{ maxWidth: 500 }}
-        />
-      </Box>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+              <Typography variant="h4" gutterBottom>
+                Classes Management
+              </Typography>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddClass}>
+                Add Class
+              </Button>
+            </Box>
+      
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <Grid container spacing={2} justifyContent="space-between" alignItems="center">
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    placeholder="Search classes by name or teacher..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      ),
+                      endAdornment: searchTerm && (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => setSearchTerm('')} size="small">
+                            <ClearIcon />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item>
+                  <Button
+                    variant="outlined"
+                    startIcon={<FilterListIcon />}
+                    onClick={() => setFilterDrawerOpen(true)}
+                  >
+                    Filters
+                  </Button>
+                </Grid>
+              </Grid>
+            </Paper>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
@@ -133,56 +183,38 @@ const ClassesPage: React.FC = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Class Name</TableCell>
-                <TableCell>Class ID</TableCell>
+                <TableCell>Class</TableCell>
+                <TableCell>Section</TableCell>
                 <TableCell>Class Teacher</TableCell>
-                <TableCell>Total Students</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell>Strength</TableCell>
+                <TableCell>Status</TableCell>
+                                <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {classes.map((classItem) => (
+              {classes?.data.map((classItem: Class) => (
                 <TableRow key={classItem.id} hover>
+                  <TableCell>{classItem.name}</TableCell>
+                  <TableCell>{classItem.section || '-'}</TableCell>
+                  <TableCell>{classItem.class_teacher?.user.first_name} {classItem.class_teacher?.user.last_name}</TableCell>
+                  <TableCell>{classItem.students?.length}/{classItem.max_students || '-'}</TableCell>
                   <TableCell>
-                    <Typography variant="subtitle2">
-                      {classItem.name}
-                      {classItem.section && ` - Section ${classItem.section}`}
-                    </Typography>
+                    <Chip
+                      label={classItem.is_active ? 'Active' : 'Archived'}
+                      color={classItem.is_active ? 'success' : 'error'}
+                      size="small"
+                    />
                   </TableCell>
-                  <TableCell>{classItem.id}</TableCell>
-                  <TableCell>
-                    {classItem.class_teacher ? (
-                      <Typography variant="body2">
-                        {classItem.class_teacher.user.first_name} {classItem.class_teacher.user.last_name}
-                      </Typography>
-                    ) : (
-                      <Typography color="text.secondary">-</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" align="center">
-                      {classItem.students?.length || 0}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <IconButton size="small" title="Edit">
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton size="small" title="Delete">
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
+                                    <TableCell align="right">
+                                      <IconButton
+                                        size="small"
+                                        onClick={(e) => handleMenuClick(e, classItem)}
+                                      >
+                                        <MoreVertIcon />
+                                      </IconButton>
+                                    </TableCell>
                 </TableRow>
               ))}
-              {classes.length === 0 && !loading && (
-                <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    <Typography variant="body2" color="text.secondary">
-                      No classes found
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -190,13 +222,39 @@ const ClassesPage: React.FC = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={total}
+          count={classes?.total || 0}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Paper>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={() => navigate(`/classes/${selectedClass?.id}`)}>Open Class</MenuItem>
+        <MenuItem onClick={() => handleEditClass(selectedClass!)}>Edit</MenuItem>
+        <MenuItem onClick={() => navigate(`/classes/${selectedClass?.id}/assign-subjects`)}>Assign Subjects/Teachers</MenuItem>
+        <MenuItem onClick={handleArchiveRestore}>
+          {selectedClass?.is_active ? 'Archive' : 'Restore'}
+        </MenuItem>
+      </Menu>
+
+      <ClassFilterDrawer
+        open={isFilterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        onApply={setFilters}
+      />
+
+      <ClassForm
+        open={isFormOpen}
+        onClose={handleFormClose}
+        onSubmit={handleFormSave}
+        classId={selectedClass?.id}
+      />
     </Box>
   );
 };

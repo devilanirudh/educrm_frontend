@@ -23,11 +23,15 @@ import {
   Logout,
   DarkMode,
   LightMode,
+  Cached,
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { RootState, useAppDispatch } from '../../store';
 import { toggleSidebar, toggleTheme } from '../../store/uiSlice';
 import { logout } from '../../store/authSlice';
+import { authService, tokenUtils } from '../../services/auth';
+
 
 interface HeaderProps {
   onMobileMenuToggle: () => void;
@@ -35,8 +39,10 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
   const { theme } = useSelector((state: RootState) => state.ui);
+
   
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
@@ -48,9 +54,45 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    console.log('🚪 Logout button clicked');
+    
+    try {
+      // Call backend logout endpoint (optional, but good practice)
+      console.log('📡 Calling backend logout...');
+      await authService.logout();
+      console.log('✅ Backend logout successful');
+    } catch (error) {
+      console.log('❌ Backend logout failed, continuing with client logout:', error);
+    }
+    
+    // Clear Redux store (this will also clear localStorage via redux-persist)
+    console.log('🗑️ Clearing Redux store...');
     dispatch(logout());
+
+    // Clear localStorage tokens (backup)
+    console.log('🗑️ Clearing localStorage tokens...');
+    tokenUtils.clearTokens();
+    
+    // Close menu
     handleClose();
+    
+    // Navigate to login page
+    console.log('🔄 Navigating to login page...');
+    navigate('/login');
+    
+    console.log('✅ Logout complete!');
+  };
+
+  const handleSwitchRole = async () => {
+    try {
+      const newRole = user?.role === 'super_admin' ? 'admin' : 'super_admin';
+      const response = await authService.switchRole(newRole);
+      tokenUtils.setTokens(response.access_token, tokenUtils.getRefreshToken() || '');
+      window.location.reload(); // Reload to apply new role
+    } catch (error) {
+      console.error('Failed to switch role', error);
+    }
   };
 
   const handleThemeToggle = () => {
@@ -155,6 +197,12 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
               <Settings sx={{ mr: 2 }} />
               Settings
             </MenuItem>
+                        {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                          <MenuItem onClick={handleSwitchRole}>
+                            <Cached sx={{ mr: 2 }} />
+                            Switch to {user?.role === 'super_admin' ? 'Admin' : 'Super Admin'}
+                          </MenuItem>
+                        )}
             <Divider />
             <MenuItem onClick={handleLogout}>
               <Logout sx={{ mr: 2 }} />

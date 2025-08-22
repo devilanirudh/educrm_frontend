@@ -1,188 +1,268 @@
-import React, { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { Snackbar, Alert } from '@mui/material';
-
-import { RootState, useAppDispatch } from './store';
-import { clearNotification } from './store/uiSlice';
-import { initializeAuth } from './store/authSlice';
-
-// Layout Components
-import Layout from './components/layout/Layout';
-import AuthLayout from './components/layout/AuthLayout';
-
-// Auth Pages
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from 'react-query';
+import { useAuthPersistence } from './hooks/useAuthPersistence';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-
-// Dashboard Pages
 import AdminDashboard from './pages/dashboard/AdminDashboard';
-import TeacherDashboard from './pages/dashboard/TeacherDashboard';
 import StudentDashboard from './pages/dashboard/StudentDashboard';
-import ParentDashboard from './pages/dashboard/ParentDashboard';
-
-// Protected Route Component
+import TeacherDashboard from './pages/dashboard/TeacherDashboard';
 import ProtectedRoute from './components/common/ProtectedRoute';
-import LoadingSpinner from './components/common/LoadingSpinner';
-import ErrorBoundary from './components/common/ErrorBoundary';
+import AuthLayout from './components/layout/AuthLayout';
+import Layout from './components/layout/Layout';
 
-// Lazy load pages for better performance
-const StudentsPage = React.lazy(() => import('./pages/students/StudentsPage'));
-const TeachersPage = React.lazy(() => import('./pages/teachers/TeachersPage'));
-const ClassesPage = React.lazy(() => import('./pages/classes/ClassesPage'));
-const AssignmentsPage = React.lazy(() => import('./pages/assignments/AssignmentsPage'));
-const ExamsPage = React.lazy(() => import('./pages/exams/ExamsPage'));
-const FeesPage = React.lazy(() => import('./pages/fees/FeesPage'));
-const LiveClassesPage = React.lazy(() => import('./pages/live-classes/LiveClassesPage'));
-const LibraryPage = React.lazy(() => import('./pages/library/LibraryPage'));
-const TransportPage = React.lazy(() => import('./pages/transport/TransportPage'));
-const HostelPage = React.lazy(() => import('./pages/hostel/HostelPage'));
-const EventsPage = React.lazy(() => import('./pages/events/EventsPage'));
-const CMSPage = React.lazy(() => import('./pages/cms/CMSPage'));
-const CRMPage = React.lazy(() => import('./pages/crm/CRMPage'));
-const ReportsPage = React.lazy(() => import('./pages/reports/ReportsPage'));
-const CommunicationPage = React.lazy(() => import('./pages/communication/CommunicationPage'));
-const FormBuilderPage = React.lazy(() => import('./pages/form-builder/FormBuilderPage'));
+// Academic pages
+import StudentsPage from './pages/students/StudentsPage';
+import TeachersPage from './pages/teachers/TeachersPage';
+import ClassesPage from './pages/classes/ClassesPage';
+import AssignmentsPage from './pages/assignments/AssignmentsPage';
+import ExamsPage from './pages/exams/ExamsPage';
 
-function App() {
-  const dispatch = useAppDispatch();
-  const { user, isLoading: authLoading } = useSelector((state: RootState) => state.auth);
-  const { notification } = useSelector((state: RootState) => state.ui);
+// Management pages
+import FeesPage from './pages/fees/FeesPage';
+import LiveClassesPage from './pages/live-classes/LiveClassesPage';
+import LibraryPage from './pages/library/LibraryPage';
+import TransportPage from './pages/transport/TransportPage';
+import HostelPage from './pages/hostel/HostelPage';
+import EventsPage from './pages/events/EventsPage';
 
-  // Initialize authentication on app start
-  useEffect(() => {
-    dispatch(initializeAuth());
-  }, [dispatch]);
+// System pages
+import CMSPage from './pages/cms/CMSPage';
+import CRMPage from './pages/crm/CRMPage';
+import FormBuilderPage from './pages/form-builder/FormBuilderPage';
+import AdvancedFormBuilderPage from './pages/form-builder/AdvancedFormBuilderPage';
+import ReportsPage from './pages/reports/ReportsPage';
+import CommunicationPage from './pages/communication/CommunicationPage';
 
-  // Handle notification close
-  const handleNotificationClose = () => {
-    dispatch(clearNotification());
-  };
+// Other pages
+import InventoryPage from './pages/inventory/InventoryPage';
 
-  // Show loading spinner while checking authentication
-  if (authLoading) {
-    return <LoadingSpinner fullScreen message="Loading..." />;
-  }
+const queryClient = new QueryClient();
+
+const App: React.FC = () => {
+  // Handle auth persistence on app startup
+  useAuthPersistence();
 
   return (
-    <ErrorBoundary>
-      <div className="App">
-        <Routes>
-          {/* Authentication Routes */}
-          <Route path="/auth" element={<AuthLayout />}>
-            <Route path="login" element={<LoginPage />} />
-            <Route path="register" element={<RegisterPage />} />
-            <Route path="forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="reset-password" element={<ResetPasswordPage />} />
-            <Route index element={<Navigate to="login" replace />} />
-          </Route>
+  <QueryClientProvider client={queryClient}>
+    <Routes>
+      {/* Auth Routes */}
+      <Route element={<AuthLayout />}>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/auth/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+      </Route>
 
-          {/* Protected Routes */}
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <React.Suspense fallback={<LoadingSpinner />}>
-                    <Routes>
-                      {/* Dashboard Routes */}
-                      <Route path="/" element={<DashboardRouter />} />
-                      <Route path="/dashboard" element={<DashboardRouter />} />
+      {/* Protected Routes */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AdminDashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-                      {/* Student Management */}
-                      <Route path="/students/*" element={<StudentsPage />} />
+      {/* Academic Routes */}
+      <Route
+        path="/students"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <StudentsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teachers"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <TeachersPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/classes"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ClassesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/assignments"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AssignmentsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exams"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ExamsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-                      {/* Teacher Management */}
-                      <Route path="/teachers/*" element={<TeachersPage />} />
+      {/* Management Routes */}
+      <Route
+        path="/fees"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/live-classes"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <LiveClassesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/library"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <LibraryPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/transport"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <TransportPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hostel"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <HostelPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <EventsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-                      {/* Class Management */}
-                      <Route path="/classes/*" element={<ClassesPage />} />
+      {/* System Routes */}
+      <Route
+        path="/cms"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CMSPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/crm"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CRMPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/form-builder"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FormBuilderPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/form-builder/advanced"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AdvancedFormBuilderPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ReportsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/communication"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CommunicationPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-                      {/* Academic Management */}
-                      <Route path="/assignments/*" element={<AssignmentsPage />} />
-                      <Route path="/exams/*" element={<ExamsPage />} />
-
-                      {/* Financial Management */}
-                      <Route path="/fees/*" element={<FeesPage />} />
-
-                      {/* E-Learning */}
-                      <Route path="/live-classes/*" element={<LiveClassesPage />} />
-
-                      {/* Other Modules */}
-                      <Route path="/library/*" element={<LibraryPage />} />
-                      <Route path="/transport/*" element={<TransportPage />} />
-                      <Route path="/hostel/*" element={<HostelPage />} />
-                      <Route path="/events/*" element={<EventsPage />} />
-
-                      {/* CMS & CRM */}
-                      <Route path="/cms/*" element={<CMSPage />} />
-                      <Route path="/crm/*" element={<CRMPage />} />
-                      <Route path="/form-builder/*" element={<FormBuilderPage />} />
-
-                      {/* Reports & Communication */}
-                      <Route path="/reports/*" element={<ReportsPage />} />
-                      <Route path="/communication/*" element={<CommunicationPage />} />
-
-                      {/* Fallback for unknown routes */}
-                      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                    </Routes>
-                  </React.Suspense>
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Fallback route */}
-          <Route path="*" element={<Navigate to={user ? "/dashboard" : "/auth/login"} replace />} />
-        </Routes>
-
-        {/* Global Notification Snackbar */}
-        <Snackbar
-          open={!!notification}
-          autoHideDuration={6000}
-          onClose={handleNotificationClose}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        >
-          {notification ? (
-            <Alert
-              onClose={handleNotificationClose}
-              severity={notification.type}
-              variant="filled"
-              sx={{ width: '100%' }}
-            >
-              {notification.message}
-            </Alert>
-          ) : undefined}
-        </Snackbar>
-      </div>
-    </ErrorBoundary>
+      {/* Other Routes */}
+      <Route
+        path="/inventory"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <InventoryPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  </QueryClientProvider>
   );
-}
-
-// Dashboard Router Component
-function DashboardRouter() {
-  const { user } = useSelector((state: RootState) => state.auth);
-
-  if (!user) {
-    return <Navigate to="/auth/login" replace />;
-  }
-
-  // Route to appropriate dashboard based on user role
-  switch (user.role) {
-    case 'admin':
-    case 'super_admin':
-      return <AdminDashboard />;
-    case 'teacher':
-      return <TeacherDashboard />;
-    case 'student':
-      return <StudentDashboard />;
-    case 'parent':
-      return <ParentDashboard />;
-    default:
-      return <AdminDashboard />;
-  }
-}
+};
 
 export default App;

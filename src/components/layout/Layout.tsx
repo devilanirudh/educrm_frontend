@@ -4,8 +4,6 @@
 
 import React, { useState } from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../store';
 
 // Layout components
 import Header from './Header';
@@ -19,7 +17,8 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { sidebarOpen, sidebarCollapsed } = useSelector((state: RootState) => state.ui);
+  const sidebarOpen = true;
+  const sidebarCollapsed = false;
   
   const [mobileOpen, setMobileOpen] = useState(false);
 

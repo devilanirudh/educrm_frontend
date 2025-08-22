@@ -2,7 +2,7 @@
  * Authentication service
  */
 
-import { api } from './api';
+import api from './api';
 import { 
   User, 
   LoginRequest, 
@@ -20,76 +20,115 @@ export const authService = {
     formData.append('username', credentials.username);
     formData.append('password', credentials.password);
     
-    return api.post<LoginResponse>('/auth/login', formData, {
+    const response = await api.post('/auth/login', formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
+
+    console.log('🔍 Raw API response:', response);
+    console.log('🔍 Response data:', response.data);
+
+    if (response && response.data) {
+      // Store tokens in localStorage
+      console.log('💾 Storing tokens in localStorage...');
+      tokenUtils.setTokens(response.data.access_token, response.data.refresh_token);
+      console.log('✅ Tokens stored. localStorage accessToken:', localStorage.getItem('accessToken') ? 'Present' : 'Missing');
+      
+      // Store user data in localStorage for persistence
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        console.log('✅ User data stored in localStorage');
+      }
+      
+      // The response should already include user data from the backend
+      console.log('🔑 Login response data:', response.data);
+    }
+    
+    return response.data;
   },
 
   // Register new user
   register: async (userData: RegisterRequest): Promise<User> => {
-    return api.post<User>('/auth/register', userData);
+    const response = await api.post<User>('/auth/register', userData);
+    return response.data;
   },
 
   // Logout user
   logout: async (): Promise<void> => {
-    return api.post('/auth/logout');
+    const response = await api.post('/auth/logout');
+    return response.data;
   },
 
   // Refresh access token
   refreshToken: async (refreshToken: string): Promise<{ access_token: string; token_type: string }> => {
-    return api.post('/auth/refresh', { refresh_token: refreshToken });
+    const response = await api.post('/auth/refresh', { refresh_token: refreshToken });
+    return response.data;
   },
 
   // Get current user information
   getCurrentUser: async (): Promise<User> => {
-    return api.get<User>('/auth/me');
+    const response = await api.get<User>('/auth/me');
+    return response.data;
   },
 
   // Update user profile
   updateProfile: async (userData: Partial<User>): Promise<User> => {
-    return api.put<User>('/auth/me', userData);
+    const response = await api.put<User>('/auth/me', userData);
+    return response.data;
   },
 
   // Change password
   changePassword: async (data: ChangePasswordRequest): Promise<void> => {
-    return api.post('/auth/change-password', data);
+    const response = await api.post('/auth/change-password', data);
+    return response.data;
   },
 
   // Forgot password
   forgotPassword: async (data: ForgotPasswordRequest): Promise<void> => {
-    return api.post('/auth/forgot-password', data);
+    const response = await api.post('/auth/forgot-password', data);
+    return response.data;
   },
 
   // Reset password
   resetPassword: async (data: ResetPasswordRequest): Promise<void> => {
-    return api.post('/auth/reset-password', data);
+    const response = await api.post('/auth/reset-password', data);
+    return response.data;
   },
 
   // Verify email
   verifyEmail: async (token: string): Promise<void> => {
-    return api.post('/auth/verify-email', { token });
+    const response = await api.post('/auth/verify-email', { token });
+    return response.data;
   },
 
   // Resend verification email
   resendVerificationEmail: async (): Promise<void> => {
-    return api.post('/auth/resend-verification');
+    const response = await api.post('/auth/resend-verification');
+    return response.data;
   },
 
   // Get user sessions
   getUserSessions: async (): Promise<any[]> => {
-    return api.get('/auth/sessions');
+    const response = await api.get('/auth/sessions');
+    return response.data;
   },
 
   // Revoke session
   revokeSession: async (sessionId: number): Promise<void> => {
-    return api.delete(`/auth/sessions/${sessionId}`);
+    const response = await api.delete(`/auth/sessions/${sessionId}`);
+    return response.data;
   },
 
   // Revoke all sessions
   revokeAllSessions: async (): Promise<void> => {
-    return api.delete('/auth/sessions');
+    const response = await api.delete('/auth/sessions');
+    return response.data;
+  },
+  // Switch user role
+  switchRole: async (newRole: string): Promise<{ access_token: string }> => {
+    const response = await api.post('/auth/switch-role', { new_role: newRole });
+    return response.data;
   },
 };
 
@@ -115,6 +154,7 @@ export const tokenUtils = {
   clearTokens: (): void => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
   },
 
   // Check if user is authenticated
