@@ -176,6 +176,15 @@ export const teachersService = {
     return response.data;
   },
 
+  // Create teacher from dynamic form data
+  createTeacherFromDynamicForm: async (data: Record<string, any>): Promise<{ teacher: Teacher; message: string }> => {
+    const response = await api.post<{ teacher: Teacher; message: string }>('/forms/submit', {
+      form_key: 'teacher_form',
+      form_data: data
+    });
+    return response.data;
+  },
+
   // Update teacher
   updateTeacher: async (id: number, data: TeacherUpdateRequest): Promise<Teacher> => {
     const response = await api.put<Teacher>(`/teachers/${id}`, data);

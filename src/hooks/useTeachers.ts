@@ -5,7 +5,12 @@ import { PaginatedResponse } from '../types/api';
 export const useTeachers = (params?: TeacherFilters) => {
   const queryClient = useQueryClient();
 
-  const { data: teachers, isLoading: isTeachersLoading } = useQuery<PaginatedResponse<Teacher>>(
+  const {
+    data: teachers,
+    isLoading: isTeachersLoading,
+    error: teachersError,
+    refetch: refetchTeachers
+  } = useQuery<PaginatedResponse<Teacher>>(
     ['teachers', params],
     () => teachersService.getTeachers(params)
   );
@@ -45,6 +50,8 @@ export const useTeachers = (params?: TeacherFilters) => {
   return {
     teachers,
     isTeachersLoading,
+    teachersError,
+    refetchTeachers,
     teacherHeadcountTrend,
     isTeacherTrendLoading,
     createTeacher,
