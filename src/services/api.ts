@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { QueryParams } from '../types/api';
 
 const api: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',
+  baseURL: 'https://educrmbackend-production.up.railway.app/api/v1',
   timeout: 10000,
 });
 
