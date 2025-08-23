@@ -1,60 +1,192 @@
-import api from './api';
-import { PaginatedResponse } from '../types/api';
+/**
+ * Assignment management service
+ */
 
+import api, { buildUrl, upload } from './api';
+import { PaginatedResponse, QueryParams } from '../types/api';
+
+// Assignment types
 export interface Assignment {
   id: number;
   title: string;
-  description: string;
+  description?: string;
   class_id: number;
   subject_id: number;
   teacher_id: number;
   due_date: string;
-  attachment_paths: string[];
-  instructions: string;
-  max_score: number;
+  instructions?: string;
+  max_score?: number;
   is_published: boolean;
+  status?: string;
   created_at: string;
   updated_at: string;
-  // These fields are not in the backend model but are in the frontend component
-  class: { name: string };
-  subject: { name: string };
-  status: string;
+  dynamic_data?: Record<string, any>;
+
+  // Relationships
+  class?: {
+    id: number;
+    name: string;
+    section: string;
+  };
+  subject?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  teacher?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+  };
+  submissions?: Array<{
+    id: number;
+    student_id: number;
+    submitted_at: string;
+    status: string;
+  }>;
 }
 
 export interface AssignmentCreateRequest {
   title: string;
-  description: string;
+  description?: string;
   class_id: number;
   subject_id: number;
   teacher_id: number;
   due_date: string;
-  attachment_paths?: string[];
   instructions?: string;
   max_score?: number;
   is_published?: boolean;
+  dynamic_data?: Record<string, any>;
 }
 
-export type AssignmentUpdateRequest = Partial<AssignmentCreateRequest>;
+export interface AssignmentUpdateRequest {
+  title?: string;
+  description?: string;
+  class_id?: number;
+  subject_id?: number;
+  teacher_id?: number;
+  due_date?: string;
+  instructions?: string;
+  max_score?: number;
+  is_published?: boolean;
+  dynamic_data?: Record<string, any>;
+}
+
+export interface AssignmentFilters extends QueryParams {
+  limit?: number;
+  class_id?: number;
+  subject_id?: number;
+  teacher_id?: number;
+  is_published?: boolean;
+  due_date_from?: string;
+  due_date_to?: string;
+  max_score_min?: number;
+  max_score_max?: number;
+  filters?: Record<string, any>;
+}
 
 export const assignmentsService = {
-  getAssignments: async (params: { page: number; per_page: number; search?: string, class_id?: number }) => {
-    const response = await api.get<PaginatedResponse<Assignment>>('/assignments', { params });
+  // Get all assignments with pagination and filters
+  getAssignments: async (params?: AssignmentFilters): Promise<PaginatedResponse<Assignment>> => {
+    const url = buildUrl('/assignments', params);
+    const response = await api.get<PaginatedResponse<Assignment>>(url);
     return response.data;
   },
-  createAssignment: async (data: AssignmentCreateRequest) => {
-    const response = await api.post('/assignments', data);
+
+  // Get assignment by ID
+  getAssignment: async (id: number): Promise<Assignment> => {
+    const response = await api.get<Assignment>(`/assignments/${id}`);
     return response.data;
   },
-  updateAssignment: async (id: number, data: AssignmentUpdateRequest) => {
-    const response = await api.put(`/assignments/${id}`, data);
+
+  // Create new assignment
+  createAssignment: async (data: AssignmentCreateRequest): Promise<Assignment> => {
+    const response = await api.post<Assignment>('/assignments', data);
     return response.data;
   },
-  deleteAssignment: async (id: number) => {
+
+  // Create assignment from dynamic form data
+  createAssignmentFromDynamicForm: async (dynamicData: Record<string, any>): Promise<any> => {
+    const response = await api.post('/assignments/dynamic', { dynamic_data: dynamicData });
+    return response.data;
+  },
+
+  // Update assignment
+  updateAssignment: async (id: number, data: AssignmentUpdateRequest): Promise<Assignment> => {
+    const response = await api.put<Assignment>(`/assignments/${id}`, data);
+    return response.data;
+  },
+
+  // Delete assignment
+  deleteAssignment: async (id: number): Promise<void> => {
     const response = await api.delete(`/assignments/${id}`);
     return response.data;
   },
-  submitAssignment: async (id: number, data: { submission_text: string, attachment_paths: string[] }) => {
-    const response = await api.post(`/assignments/${id}/submit`, data);
+
+  // Get assignment submissions
+  getAssignmentSubmissions: async (id: number, params?: { status?: string; student_id?: number }): Promise<any[]> => {
+    const url = buildUrl(`/assignments/${id}/submissions`, params);
+    const response = await api.get<any[]>(url);
+    return response.data;
+  },
+
+  // Submit assignment (student submission)
+  submitAssignment: async (assignmentId: number, data: { submission_text?: string; attachment_paths?: string[] }): Promise<any> => {
+    const response = await api.post(`/assignments/${assignmentId}/submit`, data);
+    return response.data;
+  },
+
+  // Grade submission
+  gradeSubmission: async (assignmentId: number, submissionId: number, data: { score: number; feedback?: string }): Promise<any> => {
+    const response = await api.post(`/assignments/${assignmentId}/submissions/${submissionId}/grade`, data);
+    return response.data;
+  },
+
+  // Bulk operations
+  bulkUpdateAssignments: async (assignment_ids: number[], data: Partial<AssignmentUpdateRequest>): Promise<any> => {
+    const response = await api.post('/assignments/bulk-update', { assignment_ids, data });
+    return response.data;
+  },
+
+  bulkDeleteAssignments: async (assignment_ids: number[]): Promise<any> => {
+    const response = await api.post('/assignments/bulk-delete', { assignment_ids });
+    return response.data;
+  },
+
+  // Publish/unpublish assignments
+  publishAssignment: async (id: number): Promise<any> => {
+    const response = await api.post(`/assignments/${id}/publish`);
+    return response.data;
+  },
+
+  unpublishAssignment: async (id: number): Promise<any> => {
+    const response = await api.post(`/assignments/${id}/unpublish`);
+    return response.data;
+  },
+
+  // Import/Export
+  exportAssignments: async (params?: AssignmentFilters): Promise<Blob> => {
+    const url = buildUrl('/assignments/export', params);
+    const response = await api.get(url, { responseType: 'blob' });
+    return response.data;
+  },
+
+  importAssignments: async (file: File): Promise<any> => {
+    const response = await upload('/assignments/import', file);
+    return response.data;
+  },
+
+  // Assignment statistics
+  getAssignmentStats: async (params?: { class_id?: number; subject_id?: number }): Promise<any> => {
+    const url = buildUrl('/assignments/stats', params);
+    const response = await api.get(url);
+    return response.data;
+  },
+
+  // Generate assignment report
+  generateAssignmentReport: async (id: number, params?: { report_type?: string }): Promise<Blob> => {
+    const url = buildUrl(`/assignments/${id}/report`, params);
+    const response = await api.get(url, { responseType: 'blob' });
     return response.data;
   },
 };

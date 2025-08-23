@@ -58,7 +58,6 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ open, onClose, onSave, 
       subject_id: initialData?.subject_id || undefined,
       due_date: initialData?.due_date || undefined,
       instructions: initialData?.instructions || '',
-      attachment_paths: initialData?.attachment_paths || [],
     },
     validationSchema,
     enableReinitialize: true,
@@ -137,17 +136,7 @@ const AssignmentForm: React.FC<AssignmentFormProps> = ({ open, onClose, onSave, 
               helperText={formik.touched.instructions && formik.errors.instructions}
               fullWidth
             />
-            <Button variant="outlined" component="label">
-              Upload Attachment
-              <input type="file" hidden multiple onChange={(e) => {
-                if (e.currentTarget.files) {
-                  formik.setFieldValue('attachment_paths', Array.from(e.currentTarget.files).map(f => f.name))
-                }
-              }} />
-            </Button>
-            {formik.values.attachment_paths && formik.values.attachment_paths.map((file: any) => (
-              <Chip key={file} label={file} onDelete={() => formik.setFieldValue('attachment_paths', formik.values.attachment_paths?.filter(f => f !== file))} />
-            ))}
+
           </Box>
         </DialogContent>
         <DialogActions>

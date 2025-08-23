@@ -17,8 +17,9 @@ import {
   Alert,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { classesService, Subject } from '../../services/classes';
+import { classesService } from '../../services/classes';
 import { teachersService, Teacher } from '../../services/teachers';
+import { subjectsService, Subject } from '../../services/subjects';
 
 interface SubjectAssignment {
   subject_id: number;
@@ -39,7 +40,7 @@ const AssignSubjectsPage: React.FC = () => {
       try {
         if (class_id) {
           const [subjectsRes, teachersRes, classSubjectsRes] = await Promise.all([
-            classesService.getSubjects(),
+            subjectsService.getSubjects({ per_page: 1000 }), // Fetch all subjects
             teachersService.getTeachers({ limit: 1000 }), // Fetch all teachers
             classesService.getClassSubjects(parseInt(class_id, 10)),
           ]);
@@ -78,7 +79,7 @@ const AssignSubjectsPage: React.FC = () => {
   const handleSave = async () => {
     try {
       if (class_id) {
-        await classesService.addSubjectToClass(parseInt(class_id, 10), assignments as any);
+        await classesService.assignSubjects(parseInt(class_id, 10), assignments.map(a => a.subject_id));
         navigate(`/classes/${class_id}`);
       }
     } catch (err: any) {

@@ -60,7 +60,7 @@ const AdminDashboard: React.FC = () => {
 
   const { students, isStudentsLoading } = useStudents({ per_page: 5 });
   const { teachers, isTeachersLoading, teacherHeadcountTrend, isTeacherTrendLoading } = useTeachers({ per_page: 5 });
-  const { classes, isClassesLoading, studentsByClass, isStudentsByClassLoading } = useClasses({ per_page: 5 });
+  const { classes, isClassesLoading } = useClasses({ per_page: 5 });
 
   const loading =
     isTransactionsLoading ||
@@ -68,8 +68,7 @@ const AdminDashboard: React.FC = () => {
     isStudentsLoading ||
     isTeachersLoading ||
     isTeacherTrendLoading ||
-    isClassesLoading ||
-    isStudentsByClassLoading;
+    isClassesLoading;
 
   const stats = {
     totalStudents: students?.total || 0,
@@ -215,7 +214,7 @@ const AdminDashboard: React.FC = () => {
                     <CardHeader title="Students by Class" />
                     <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={studentsByClass}>
+                        <BarChart data={[]}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis />

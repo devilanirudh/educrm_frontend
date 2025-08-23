@@ -1,34 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Drawer,
   Box,
   Typography,
   Button,
   TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Divider,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { FormField } from '../../types/formBuilder';
+
+interface Preset {
+  name: string;
+  filters: Record<string, any>;
+}
 
 interface ExamFilterDrawerProps {
   open: boolean;
   onClose: () => void;
   onApply: (filters: Record<string, any>) => void;
   pinned?: boolean;
+  schema?: FormField[];
 }
 
 const ExamFilterDrawer: React.FC<ExamFilterDrawerProps> = ({
   open,
   onClose,
+  schema,
   onApply,
   pinned,
 }) => {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
-  const [filters, setFilters] = useState<Record<string, any>>({
-    class_id: '',
-    subject_id: '',
-    status: '',
-  });
+  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [presetName, setPresetName] = useState('');
+  const [presets, setPresets] = useState<Preset[]>([]);
+
+  useEffect(() => {
+    if (schema) {
+      const initialFilters: Record<string, any> = {};
+      schema.forEach(field => {
+        initialFilters[field.field_name] = '';
+      });
+      setFilters(initialFilters);
+    }
+    // Mock loading presets
+    const savedPresets = localStorage.getItem('examFilterPresets');
+    if (savedPresets) {
+      setPresets(JSON.parse(savedPresets));
+    }
+  }, [schema]);
 
   const handleChange = (name: string, value: any) => {
     setFilters(prev => ({ ...prev, [name]: value }));
@@ -40,11 +66,73 @@ const ExamFilterDrawer: React.FC<ExamFilterDrawerProps> = ({
   };
 
   const handleClear = () => {
-    setFilters({
-      class_id: '',
-      subject_id: '',
-      status: '',
-    });
+    if (schema) {
+      const clearedFilters: Record<string, any> = {};
+      schema.forEach(field => {
+        clearedFilters[field.field_name] = '';
+      });
+      setFilters(clearedFilters);
+    }
+  };
+
+  const handleSavePreset = () => {
+    if (presetName) {
+      const newPreset = { name: presetName, filters };
+      const updatedPresets = [...presets, newPreset];
+      setPresets(updatedPresets);
+      localStorage.setItem('examFilterPresets', JSON.stringify(updatedPresets));
+      setPresetName('');
+    }
+  };
+
+  const handleSelectPreset = (preset: Preset) => {
+    setFilters(preset.filters);
+  };
+
+  const renderField = (field: FormField) => {
+    switch (field.field_type) {
+      case 'select':
+        return (
+          <FormControl fullWidth margin="normal" key={field.field_name}>
+            <InputLabel>{field.label}</InputLabel>
+            <Select
+              value={filters[field.field_name] || ''}
+              onChange={(e) => handleChange(field.field_name, e.target.value)}
+              label={field.label}
+            >
+              {field.options?.map(option => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        );
+      case 'date':
+        return (
+          <TextField
+            key={field.field_name}
+            label={field.label}
+            type="date"
+            fullWidth
+            margin="normal"
+            value={filters[field.field_name] || ''}
+            onChange={(e) => handleChange(field.field_name, e.target.value)}
+            InputLabelProps={{ shrink: true }}
+          />
+        );
+      default:
+        return (
+          <TextField
+            key={field.field_name}
+            label={field.label}
+            fullWidth
+            margin="normal"
+            value={filters[field.field_name] || ''}
+            onChange={(e) => handleChange(field.field_name, e.target.value)}
+          />
+        );
+    }
   };
 
   const content = (
@@ -52,33 +140,52 @@ const ExamFilterDrawer: React.FC<ExamFilterDrawerProps> = ({
       <Typography variant="h6" gutterBottom>
         Filters
       </Typography>
-      <TextField
-        label="Class ID"
-        fullWidth
-        margin="normal"
-        value={filters.class_id}
-        onChange={(e) => handleChange('class_id', e.target.value)}
-      />
-      <TextField
-        label="Subject ID"
-        fullWidth
-        margin="normal"
-        value={filters.subject_id}
-        onChange={(e) => handleChange('subject_id', e.target.value)}
-      />
-      <TextField
-        label="Status"
-        fullWidth
-        margin="normal"
-        value={filters.status}
-        onChange={(e) => handleChange('status', e.target.value)}
-      />
+      {schema?.map(renderField)}
       <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
         <Button onClick={handleClear}>Clear</Button>
         <Button variant="contained" onClick={handleApply}>
           Apply
         </Button>
       </Box>
+      <Divider sx={{ my: 3 }} />
+      <Typography variant="h6" gutterBottom>
+        Save as Preset
+      </Typography>
+      <TextField
+        label="Preset Name"
+        fullWidth
+        margin="normal"
+        value={presetName}
+        onChange={(e) => setPresetName(e.target.value)}
+      />
+      <Button
+        variant="outlined"
+        fullWidth
+        onClick={handleSavePreset}
+        disabled={!presetName}
+      >
+        Save Preset
+      </Button>
+      {presets.length > 0 && (
+        <Box sx={{ mt: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Saved Presets
+          </Typography>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Select Preset</InputLabel>
+            <Select
+              onChange={(e) => handleSelectPreset(e.target.value as Preset)}
+              label="Select Preset"
+            >
+              {presets.map(p => (
+                <MenuItem key={p.name} value={p as any}>
+                  {p.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+      )}
     </Box>
   );
 

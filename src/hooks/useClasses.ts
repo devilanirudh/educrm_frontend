@@ -5,14 +5,14 @@ import { PaginatedResponse } from '../types/api';
 export const useClasses = (params?: ClassFilters) => {
   const queryClient = useQueryClient();
 
-  const { data: classes, isLoading: isClassesLoading } = useQuery<PaginatedResponse<Class>>(
+  const {
+    data: classes,
+    isLoading: isClassesLoading,
+    error: classesError,
+    refetch: refetchClasses
+  } = useQuery<PaginatedResponse<Class>>(
     ['classes', params],
     () => classesService.getClasses(params)
-  );
-
-  const { data: studentsByClass, isLoading: isStudentsByClassLoading } = useQuery(
-    'studentsByClass',
-    classesService.getStudentsByClass
   );
 
   const { mutate: createClass, isLoading: isCreatingClass } = useMutation(
@@ -45,8 +45,8 @@ export const useClasses = (params?: ClassFilters) => {
   return {
     classes,
     isClassesLoading,
-    studentsByClass,
-    isStudentsByClassLoading,
+    classesError,
+    refetchClasses,
     createClass,
     isCreatingClass,
     updateClass,
@@ -63,7 +63,7 @@ export const useClass = (id: number) => {
   );
 
   return {
-    classData,
+    classData: classData,
     isClassLoading,
   };
 };

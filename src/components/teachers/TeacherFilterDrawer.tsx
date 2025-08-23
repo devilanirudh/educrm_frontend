@@ -42,11 +42,13 @@ const TeacherFilterDrawer: React.FC<TeacherFilterDrawerProps> = ({
   const [presets, setPresets] = useState<Preset[]>([]);
 
   useEffect(() => {
-    const initialFilters: Record<string, any> = {};
-    schema.forEach(field => {
-      initialFilters[field.field_name] = '';
-    });
-    setFilters(initialFilters);
+    if (schema) {
+      const initialFilters: Record<string, any> = {};
+      schema.forEach(field => {
+        initialFilters[field.field_name] = '';
+      });
+      setFilters(initialFilters);
+    }
     // Mock loading presets
     const savedPresets = localStorage.getItem('teacherFilterPresets');
     if (savedPresets) {
@@ -64,11 +66,13 @@ const TeacherFilterDrawer: React.FC<TeacherFilterDrawerProps> = ({
   };
 
   const handleClear = () => {
-    const clearedFilters: Record<string, any> = {};
-    schema.forEach(field => {
-      clearedFilters[field.field_name] = '';
-    });
-    setFilters(clearedFilters);
+    if (schema) {
+      const clearedFilters: Record<string, any> = {};
+      schema.forEach(field => {
+        clearedFilters[field.field_name] = '';
+      });
+      setFilters(clearedFilters);
+    }
   };
 
   const handleSavePreset = () => {
@@ -136,7 +140,7 @@ const TeacherFilterDrawer: React.FC<TeacherFilterDrawerProps> = ({
       <Typography variant="h6" gutterBottom>
         Filters
       </Typography>
-      {schema.map(renderField)}
+      {schema?.map(renderField)}
       <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
         <Button onClick={handleClear}>Clear</Button>
         <Button variant="contained" onClick={handleApply}>
