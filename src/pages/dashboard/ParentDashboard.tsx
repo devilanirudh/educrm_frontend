@@ -22,20 +22,8 @@ const ParentDashboard: React.FC = () => {
   const { data: dashboardData, isLoading, error } = useQuery(
     'parentDashboard',
     async () => {
-      // We'll implement these API calls later
-      const [childrenRes, feesRes, attendanceRes, gradesRes] = await Promise.all([
-        api.get('/students?page=1&per_page=5'), // Children data
-        api.get('/fees?page=1&per_page=5'), // Fees information
-        api.get('/attendance?page=1&per_page=5'), // Attendance data
-        api.get('/grades?page=1&per_page=5'), // Children's grades
-      ]);
-      
-      return {
-        children: childrenRes.data,
-        fees: feesRes.data,
-        attendance: attendanceRes.data,
-        grades: gradesRes.data,
-      };
+      const response = await api.get('/parents/me/dashboard');
+      return response.data;
     },
     {
       staleTime: 5 * 60 * 1000, // 5 minutes
@@ -91,7 +79,7 @@ const ParentDashboard: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-surface-900">Parent Dashboard</h1>
           <p className="mt-1 text-sm text-surface-600">
-            Welcome back! Here's your children's academic progress and important updates.
+            Welcome back, {dashboardData?.parent_info?.name}! Here's your children's academic progress and important updates.
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
@@ -113,7 +101,7 @@ const ParentDashboard: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-surface-600">Children</p>
               <p className="text-2xl font-bold text-surface-900 mt-1">
-                {dashboardData?.children?.total || '0'}
+                {dashboardData?.total_children || '0'}
               </p>
             </div>
             <div className="p-3 bg-brand-500 rounded-xl">
@@ -125,8 +113,10 @@ const ParentDashboard: React.FC = () => {
         <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-surface-600">Average GPA</p>
-              <p className="text-2xl font-bold text-surface-900 mt-1">3.8</p>
+              <p className="text-sm font-medium text-surface-600">Average Grade %</p>
+              <p className="text-2xl font-bold text-surface-900 mt-1">
+                {dashboardData?.summary?.average_grade_percentage || '0'}%
+              </p>
             </div>
             <div className="p-3 bg-success-500 rounded-xl">
               <AcademicCapIcon className="w-6 h-6 text-white" />
@@ -138,7 +128,9 @@ const ParentDashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-surface-600">Attendance Rate</p>
-              <p className="text-2xl font-bold text-surface-900 mt-1">96.2%</p>
+              <p className="text-2xl font-bold text-surface-900 mt-1">
+                {dashboardData?.summary?.overall_attendance_percentage || '0'}%
+              </p>
             </div>
             <div className="p-3 bg-warn-500 rounded-xl">
               <CheckCircleIcon className="w-6 h-6 text-white" />
@@ -149,11 +141,13 @@ const ParentDashboard: React.FC = () => {
         <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-surface-600">Outstanding Fees</p>
-              <p className="text-2xl font-bold text-surface-900 mt-1">$450</p>
+              <p className="text-sm font-medium text-surface-600">Total Grades</p>
+              <p className="text-2xl font-bold text-surface-900 mt-1">
+                {dashboardData?.summary?.total_grades || '0'}
+              </p>
             </div>
             <div className="p-3 bg-error-500 rounded-xl">
-              <CurrencyDollarIcon className="w-6 h-6 text-white" />
+              <ChartBarIcon className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
@@ -173,24 +167,30 @@ const ParentDashboard: React.FC = () => {
             </button>
           </div>
           <div className="space-y-4">
-            {dashboardData?.children?.items?.slice(0, 3).map((child: any) => (
+            {dashboardData?.children_overview?.slice(0, 3).map((child: any) => (
               <div key={child.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-xl">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center">
                     <span className="text-sm font-medium text-brand-600">
-                      {child.first_name?.[0]}{child.last_name?.[0]}
+                      {child.name.split(' ').map((n: string) => n[0]).join('')}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-surface-900">
-                      {child.first_name} {child.last_name}
+                      {child.name}
                     </p>
-                    <p className="text-xs text-surface-500">Class {child.class}</p>
+                    <p className="text-xs text-surface-500">
+                      {child.class?.name} {child.class?.section && `- ${child.class.section}`}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-surface-900">GPA: 3.8</p>
-                  <p className="text-xs text-surface-500">96% attendance</p>
+                  <p className="text-sm font-medium text-surface-900">
+                    {child.grades.average_percentage}% avg
+                  </p>
+                  <p className="text-xs text-surface-500">
+                    {child.attendance.percentage}% attendance
+                  </p>
                 </div>
               </div>
             )) || (
@@ -201,50 +201,56 @@ const ParentDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Fee Status */}
+        {/* Attendance Summary */}
         <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-surface-900">Fee Status</h3>
+            <h3 className="text-lg font-semibold text-surface-900">Attendance Summary</h3>
             <button 
-              onClick={() => navigate('/fees')}
+              onClick={() => navigate('/attendance')}
               className="text-sm text-brand-600 hover:text-brand-700 font-medium"
             >
               View All →
             </button>
           </div>
           <div className="space-y-4">
-            {dashboardData?.fees?.items?.slice(0, 3).map((fee: any) => (
-              <div key={fee.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-xl">
+            {dashboardData?.children_overview?.slice(0, 3).map((child: any) => (
+              <div key={child.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-xl">
                 <div>
-                  <p className="text-sm font-medium text-surface-900">{fee.student_name}</p>
-                  <p className="text-xs text-surface-500">{fee.fee_type}</p>
+                  <p className="text-sm font-medium text-surface-900">{child.name}</p>
+                  <p className="text-xs text-surface-500">
+                    {child.attendance.total_days} days tracked
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-surface-900">${fee.amount}</p>
+                  <p className="text-sm font-semibold text-surface-900">
+                    {child.attendance.present_days}/{child.attendance.total_days}
+                  </p>
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    fee.status === 'paid' 
+                    child.attendance.percentage >= 90 
                       ? 'bg-success-100 text-success-800' 
+                      : child.attendance.percentage >= 75
+                      ? 'bg-warn-100 text-warn-800'
                       : 'bg-error-100 text-error-800'
                   }`}>
-                    {fee.status}
+                    {child.attendance.percentage}%
                   </span>
                 </div>
               </div>
             )) || (
               <div className="text-center py-4">
-                <p className="text-surface-500">No fee information available</p>
+                <p className="text-surface-500">No attendance data available</p>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Recent Grades */}
+      {/* Children Details */}
       <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-surface-900">Recent Grades</h3>
+          <h3 className="text-lg font-semibold text-surface-900">Children Details</h3>
           <button 
-            onClick={() => navigate('/grades')}
+            onClick={() => navigate('/students')}
             className="text-sm text-brand-600 hover:text-brand-700 font-medium"
           >
             View All →
@@ -254,26 +260,40 @@ const ParentDashboard: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-surface-200">
-                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Student</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Subject</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Assignment</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Grade</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Score</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Name</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Class</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Attendance</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Grades</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Status</th>
               </tr>
             </thead>
             <tbody>
-              {dashboardData?.grades?.items?.slice(0, 5).map((grade: any) => (
-                <tr key={grade.id} className="border-b border-surface-100">
-                  <td className="py-3 px-4 text-sm text-surface-900">{grade.student}</td>
-                  <td className="py-3 px-4 text-sm text-surface-900">{grade.subject}</td>
-                  <td className="py-3 px-4 text-sm text-surface-900">{grade.assignment}</td>
-                  <td className="py-3 px-4 text-sm font-medium text-surface-900">{grade.grade}</td>
-                  <td className="py-3 px-4 text-sm text-surface-900">{grade.score}%</td>
+              {dashboardData?.children_overview?.map((child: any) => (
+                <tr key={child.id} className="border-b border-surface-100">
+                  <td className="py-3 px-4 text-sm text-surface-900">{child.name}</td>
+                  <td className="py-3 px-4 text-sm text-surface-900">
+                    {child.class?.name} {child.class?.section && `- ${child.class.section}`}
+                  </td>
+                  <td className="py-3 px-4 text-sm text-surface-900">
+                    {child.attendance.percentage}% ({child.attendance.present_days}/{child.attendance.total_days})
+                  </td>
+                  <td className="py-3 px-4 text-sm text-surface-900">
+                    {child.grades.average_percentage}% ({child.grades.total_grades} grades)
+                  </td>
+                  <td className="py-3 px-4 text-sm">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      child.is_active 
+                        ? 'bg-success-100 text-success-800' 
+                        : 'bg-error-100 text-error-800'
+                    }`}>
+                      {child.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
                 </tr>
               )) || (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-surface-500">
-                    No recent grades available
+                    No children data available
                   </td>
                 </tr>
               )}

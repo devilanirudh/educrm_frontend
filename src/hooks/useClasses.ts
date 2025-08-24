@@ -48,6 +48,15 @@ export const useClasses = (params?: ClassFilters) => {
     }
   );
 
+  const { mutate: toggleClassStatus, isLoading: isTogglingStatus } = useMutation(
+    (id: number) => classesService.toggleClassStatus(id),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('classes');
+      },
+    }
+  );
+
   return {
     classes,
     isClassesLoading,
@@ -59,6 +68,8 @@ export const useClasses = (params?: ClassFilters) => {
     isUpdatingClass,
     deleteClass,
     isDeletingClass,
+    toggleClassStatus,
+    isTogglingStatus,
   };
 };
 

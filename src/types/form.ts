@@ -1,4 +1,4 @@
-export type FieldType = "text" | "email" | "number" | "textarea" | "select" | "checkbox" | "radio" | "date" | "file" | "image" | "password" | "url" | "phone" | "toggle";
+export type FieldType = "text" | "email" | "number" | "textarea" | "select" | "multi-select" | "checkbox" | "radio" | "date" | "file" | "image" | "password" | "url" | "phone" | "toggle" | "dynamic-config";
 
 export interface ValidationRules {
   required?: boolean;
@@ -29,6 +29,7 @@ export interface FormField {
   validation_rules?: Record<string, any>;
   options?: FormFieldOption[];
   order?: number;
+  config?: Record<string, any>;
 }
 
 export interface FormSchema {

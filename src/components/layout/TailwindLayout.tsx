@@ -29,7 +29,8 @@ import {
   ClipboardDocumentListIcon,
   BellIcon,
   UserCircleIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 
 interface TailwindLayoutProps {
@@ -92,6 +93,7 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
       { name: 'Transport', href: '/transport', icon: TruckIcon },
       { name: 'Hostel', href: '/hostel', icon: BuildingOfficeIcon },
       { name: 'Events', href: '/events', icon: CalendarIcon },
+      { name: 'Attendance', href: '/attendance', icon: ClockIcon },
       { name: 'Reports', href: '/reports', icon: ChartBarIcon },
       { name: 'Communication', href: '/communication', icon: ChatBubbleLeftRightIcon },
       { name: 'Inventory', href: '/inventory', icon: CubeIcon },
@@ -104,6 +106,8 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
     if (user?.role === 'student') {
       return [
         { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+        { name: 'My Classes', href: '/student-classes', icon: BookOpenIcon },
+        { name: 'Attendance', href: '/student-attendance', icon: ClockIcon },
         { name: 'Assignments', href: '/assignments', icon: ClipboardDocumentListIcon },
         { name: 'Exams', href: '/exams', icon: DocumentTextIcon },
         { name: 'Live Classes', href: '/live-classes', icon: VideoCameraIcon },
@@ -116,12 +120,25 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
     if (user?.role === 'teacher') {
       return [
         { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-        { name: 'Classes', href: '/classes', icon: BookOpenIcon },
         { name: 'Assignments', href: '/assignments', icon: ClipboardDocumentListIcon },
         { name: 'Exams', href: '/exams', icon: DocumentTextIcon },
         { name: 'Live Classes', href: '/live-classes', icon: VideoCameraIcon },
+        { name: 'Class', href: '/attendance', icon: ClockIcon },
         { name: 'Reports', href: '/reports', icon: ChartBarIcon },
         { name: 'Communication', href: '/communication', icon: ChatBubbleLeftRightIcon },
+      ];
+    }
+
+    if (user?.role === 'parent') {
+      return [
+        { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+        { name: 'Students', href: '/students', icon: UsersIcon },
+        { name: 'Teachers', href: '/teachers', icon: AcademicCapIcon },
+        { name: 'Classes', href: '/classes', icon: BookOpenIcon },
+        { name: 'Assignments', href: '/assignments', icon: ClipboardDocumentListIcon },
+        { name: 'Exams', href: '/exams', icon: DocumentTextIcon },
+        { name: 'Fees', href: '/fees', icon: CreditCardIcon },
+        { name: 'Attendance', href: '/attendance', icon: ClockIcon },
       ];
     }
 

@@ -303,6 +303,12 @@ export const studentsService = {
     const response = await api.get(`/students/${id}/dashboard`);
     return response.data;
   },
+
+  // Get my classes (for students)
+  getMyClasses: async (): Promise<{classes: any[], total: number}> => {
+    const response = await api.get('/students/me/classes');
+    return response.data;
+  },
   
   // Placeholder functions for row actions
   generatePdf: async (id: number): Promise<void> => {

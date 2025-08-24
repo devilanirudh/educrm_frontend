@@ -140,6 +140,7 @@ export interface TeacherUpdateRequest {
   teaching_philosophy?: string;
   awards_recognitions?: string;
   publications?: string;
+  dynamic_data?: Record<string, any>;
 }
 
 export interface TeacherFilters extends QueryParams {

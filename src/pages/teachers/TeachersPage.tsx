@@ -140,9 +140,16 @@ const TeachersPage: React.FC = () => {
   };
 
   const handleFormSave = async (data: any) => {
+    console.log('Form data being saved:', data);
+    console.log('Form data keys:', Object.keys(data));
+    console.log('class_assignments in data:', data.class_assignments);
     try {
       if (selectedTeacher) {
-        updateTeacher({ id: selectedTeacher.id, data });
+        // For updates, wrap the form data in dynamic_data
+        const updateData = {
+          dynamic_data: data
+        };
+        updateTeacher({ id: selectedTeacher.id, data: updateData });
         setSuccessMessage('Teacher updated successfully!');
       } else {
         const result = await teachersService.createTeacherFromDynamicForm(data);
@@ -214,17 +221,16 @@ const TeachersPage: React.FC = () => {
         value = (teacher.user as any)[field.field_name];
       }
 
-      if (value !== undefined) {
-        if (field.field_type === 'date' && value) {
-          const date = new Date(value);
-          if (!isNaN(date.getTime())) {
-            formData[field.field_name] = date.toISOString().split('T')[0];
-          } else {
-            formData[field.field_name] = value;
-          }
+      // Always include the field in formData, even if undefined
+      if (field.field_type === 'date' && value) {
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          formData[field.field_name] = date.toISOString().split('T')[0];
         } else {
           formData[field.field_name] = value;
         }
+      } else {
+        formData[field.field_name] = value;
       }
     });
 

@@ -27,6 +27,7 @@ import {
   ExpandLess,
   ExpandMore,
   Poll,
+  CheckCircle,
 } from '@mui/icons-material';
 
 interface SidebarProps {
@@ -59,6 +60,10 @@ const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
 
   // Menu items based on user role
   const getMenuItems = () => {
+    // Debug logging
+    console.log('🔍 Sidebar - Current user:', user);
+    console.log('🔍 Sidebar - User role:', user?.role);
+    
     const baseItems = [
       {
         text: 'Dashboard',
@@ -109,13 +114,13 @@ const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
         text: 'Teaching',
         icon: <School />,
         children: [
-          { text: 'My Classes', icon: <Class />, path: '/classes' },
           { text: 'Assignments', icon: <Assignment />, path: '/assignments' },
           { text: 'Exams', icon: <Quiz />, path: '/exams' },
           { text: 'Live Classes', icon: <VideoCall />, path: '/live-classes' },
         ],
       },
       { text: 'Students', icon: <People />, path: '/students' },
+      { text: 'Class', icon: <CheckCircle />, path: '/attendance' },
       { text: 'Library', icon: <LibraryBooks />, path: '/library' },
     ];
 
@@ -129,23 +134,35 @@ const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
     ];
 
     const parentItems = [
-      { text: 'My Children', icon: <People />, path: '/students' },
+      { text: 'Students', icon: <People />, path: '/students' },
+      { text: 'Teachers', icon: <School />, path: '/teachers' },
+      { text: 'Classes', icon: <Class />, path: '/classes' },
+      { text: 'Assignments', icon: <Assignment />, path: '/assignments' },
+      { text: 'Exams', icon: <Quiz />, path: '/exams' },
       { text: 'Fees & Payments', icon: <Payment />, path: '/fees' },
-      { text: 'Communication', icon: <Chat />, path: '/communication' },
-      { text: 'Events', icon: <Event />, path: '/events' },
+      { text: 'Attendance', icon: <CheckCircle />, path: '/attendance' },
     ];
 
+    console.log('🔍 Sidebar - Role comparison:', user?.role);
+    console.log('🔍 Sidebar - Role type:', typeof user?.role);
+    console.log('🔍 Sidebar - Role === "parent":', user?.role === 'parent');
+    
     switch (user?.role) {
       case 'admin':
       case 'super_admin':
+        console.log('🔍 Sidebar - Returning admin items');
         return [...baseItems, ...adminItems];
       case 'teacher':
+        console.log('🔍 Sidebar - Returning teacher items');
         return [...baseItems, ...teacherItems];
       case 'student':
+        console.log('🔍 Sidebar - Returning student items');
         return [...baseItems, ...studentItems];
       case 'parent':
+        console.log('🔍 Sidebar - Returning parent items');
         return [...baseItems, ...parentItems];
       default:
+        console.log('🔍 Sidebar - Returning default items (role not matched)');
         return baseItems;
     }
   };

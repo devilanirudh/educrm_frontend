@@ -7,15 +7,11 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import AdminDashboard from './pages/dashboard/AdminDashboard';
-import StudentDashboard from './pages/dashboard/StudentDashboard';
-import TeacherDashboard from './pages/dashboard/TeacherDashboard';
 import TailwindAdminDashboard from './pages/dashboard/TailwindAdminDashboard';
 import TailwindTeacherDashboard from './pages/dashboard/TailwindTeacherDashboard';
 import TailwindStudentDashboard from './pages/dashboard/TailwindStudentDashboard';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AuthLayout from './components/layout/AuthLayout';
-import Layout from './components/layout/Layout';
 import TailwindLayout from './components/layout/TailwindLayout';
 import GlobalLoader from './components/common/GlobalLoader';
 
@@ -46,6 +42,11 @@ import CommunicationPage from './pages/communication/CommunicationPage';
 import InventoryPage from './pages/inventory/InventoryPage';
 import NotificationsPage from './pages/notifications/NotificationsPage';
 import RoleManagementPage from './pages/admin/RoleManagementPage';
+import AttendancePage from './pages/attendance/AttendancePage';
+import StudentAttendancePage from './pages/attendance/StudentAttendancePage';
+import TeacherClassesAttendance from './components/attendance/TeacherClassesAttendance';
+import DynamicDashboard from './components/common/DynamicDashboard';
+import StudentClassesPage from './pages/classes/StudentClassesPage';
 
 const queryClient = new QueryClient();
 
@@ -70,13 +71,13 @@ const App: React.FC = () => {
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
-      {/* Protected Routes with Tailwind Layout */}
+      {/* Dynamic Dashboard Route */}
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
             <TailwindLayout>
-              <TailwindAdminDashboard />
+              <DynamicDashboard />
             </TailwindLayout>
           </ProtectedRoute>
         }
@@ -303,6 +304,39 @@ const App: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* Attendance Routes */}
+      <Route
+        path="/attendance"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <TeacherClassesAttendance />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student-attendance"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <StudentAttendancePage />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student-classes"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <StudentClassesPage />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/notifications"
         element={

@@ -9,6 +9,8 @@ import {
   Alert,
 } from '@mui/material';
 import { classesService, Class } from '../../services/classes';
+import TeacherAttendanceMarking from '../../components/attendance/TeacherAttendanceMarking';
+import ClassRoster from './components/ClassRoster';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -94,8 +96,7 @@ const ClassDashboard: React.FC = () => {
         </Tabs>
       </Box>
       <TabPanel value={tabValue} index={0}>
-        {/* Roster content will go here */}
-        <Typography>Class Roster</Typography>
+        {classData && <ClassRoster classId={classData.id} />}
       </TabPanel>
       <TabPanel value={tabValue} index={1}>
         {/* Assignments content will go here */}
@@ -106,8 +107,8 @@ const ClassDashboard: React.FC = () => {
         <Typography>Exams</Typography>
       </TabPanel>
       <TabPanel value={tabValue} index={3}>
-        {/* Attendance content will go here */}
-        <Typography>Attendance</Typography>
+        {/* Attendance content */}
+        {classData && <TeacherAttendanceMarking classId={classData.id} />}
       </TabPanel>
     </Box>
   );

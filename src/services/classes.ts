@@ -113,10 +113,16 @@ export const classesService = {
     return response.data;
   },
 
+  // Toggle class status (activate/deactivate)
+  toggleClassStatus: async (id: number): Promise<{ message: string; is_active: boolean }> => {
+    const response = await api.patch(`/classes/${id}/toggle-status`);
+    return response.data;
+  },
+
   // Get class students
-  getClassStudents: async (id: number, params?: { is_active?: boolean }): Promise<any[]> => {
+  getClassStudents: async (id: number, params?: { is_active?: boolean }): Promise<{students: any[], total: number, class: any}> => {
     const url = buildUrl(`/classes/${id}/students`, params);
-    const response = await api.get<any[]>(url);
+    const response = await api.get<{students: any[], total: number, class: any}>(url);
     return response.data;
   },
 
