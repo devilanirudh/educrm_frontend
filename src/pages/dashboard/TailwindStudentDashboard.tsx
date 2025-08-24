@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from 'react-query';
 import { 
   BookOpenIcon, 
   ClipboardDocumentListIcon,
@@ -11,40 +12,76 @@ import {
   DocumentTextIcon,
   UserGroupIcon
 } from '@heroicons/react/24/outline';
+import api from '../../services/api';
 
 const TailwindStudentDashboard: React.FC = () => {
   const navigate = useNavigate();
 
-  // Mock data for student dashboard
-  const upcomingAssignments = [
-    { id: 1, title: 'Algebra Quiz', subject: 'Mathematics', dueDate: '2024-01-20', status: 'pending' },
-    { id: 2, title: 'Essay on Shakespeare', subject: 'English', dueDate: '2024-01-22', status: 'in-progress' },
-    { id: 3, title: 'Science Lab Report', subject: 'Physics', dueDate: '2024-01-25', status: 'pending' },
-  ];
+  // Fetch student dashboard data
+  const { data: dashboardData, isLoading, error } = useQuery(
+    'studentDashboard',
+    async () => {
+      // We'll implement these API calls later
+      const [assignmentsRes, examsRes, liveClassesRes, gradesRes] = await Promise.all([
+        api.get('/assignments?page=1&per_page=5'), // Recent assignments
+        api.get('/exams?page=1&per_page=5'), // Upcoming exams
+        api.get('/live-classes?page=1&per_page=5'), // Live classes
+        api.get('/grades?page=1&per_page=5'), // Recent grades
+      ]);
+      
+      return {
+        assignments: assignmentsRes.data,
+        exams: examsRes.data,
+        liveClasses: liveClassesRes.data,
+        grades: gradesRes.data,
+      };
+    },
+    {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
 
-  const upcomingExams = [
-    { id: 1, subject: 'Mathematics', date: '2024-01-28', time: '09:00 AM', room: 'Room 101' },
-    { id: 2, subject: 'English Literature', date: '2024-01-30', time: '10:30 AM', room: 'Room 102' },
-    { id: 3, subject: 'Physics', date: '2024-02-02', time: '02:00 PM', room: 'Room 103' },
-  ];
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-surface-900">Student Dashboard</h1>
+            <p className="mt-1 text-sm text-surface-600">
+              Loading your learning progress...
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200 animate-pulse">
+              <div className="h-4 bg-surface-200 rounded w-3/4 mb-2"></div>
+              <div className="h-8 bg-surface-200 rounded w-1/2 mb-2"></div>
+              <div className="h-3 bg-surface-200 rounded w-1/3"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-  const liveClasses = [
-    { id: 1, subject: 'Mathematics', teacher: 'Mr. Johnson', time: '08:00 AM', status: 'live' },
-    { id: 2, subject: 'English', teacher: 'Ms. Smith', time: '10:00 AM', status: 'upcoming' },
-    { id: 3, subject: 'Physics', teacher: 'Dr. Brown', time: '02:00 PM', status: 'upcoming' },
-  ];
-
-  const recentGrades = [
-    { id: 1, subject: 'Mathematics', assignment: 'Algebra Quiz', grade: 'A', score: 95 },
-    { id: 2, subject: 'English', assignment: 'Essay Writing', grade: 'B+', score: 87 },
-    { id: 3, subject: 'Physics', assignment: 'Lab Report', grade: 'A-', score: 92 },
-  ];
-
-  const notifications = [
-    { id: 1, type: 'success', message: 'New assignment posted: Algebra Quiz', time: '2 hours ago' },
-    { id: 2, type: 'info', message: 'Live class starting in 10 minutes', time: '4 hours ago' },
-    { id: 3, type: 'warning', message: 'Exam schedule updated', time: '6 hours ago' },
-  ];
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-surface-900">Student Dashboard</h1>
+            <p className="mt-1 text-sm text-surface-600">
+              Error loading dashboard data. Please try again.
+            </p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
+          <p className="text-surface-600">Failed to load dashboard data. Please refresh the page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -53,7 +90,7 @@ const TailwindStudentDashboard: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-surface-900">Student Dashboard</h1>
           <p className="mt-1 text-sm text-surface-600">
-            Welcome back, Sarah! Here's your learning progress and upcoming activities.
+            Welcome back! Here's your learning progress and upcoming activities.
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
@@ -86,7 +123,9 @@ const TailwindStudentDashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-surface-600">Pending Assignments</p>
-              <p className="text-2xl font-bold text-surface-900 mt-1">5</p>
+              <p className="text-2xl font-bold text-surface-900 mt-1">
+                {dashboardData?.assignments?.total || '0'}
+              </p>
             </div>
             <div className="p-3 bg-warn-500 rounded-xl">
               <ClipboardDocumentListIcon className="w-6 h-6 text-white" />
@@ -98,7 +137,9 @@ const TailwindStudentDashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-surface-600">Upcoming Exams</p>
-              <p className="text-2xl font-bold text-surface-900 mt-1">3</p>
+              <p className="text-2xl font-bold text-surface-900 mt-1">
+                {dashboardData?.exams?.total || '0'}
+              </p>
             </div>
             <div className="p-3 bg-error-500 rounded-xl">
               <DocumentTextIcon className="w-6 h-6 text-white" />
@@ -109,18 +150,20 @@ const TailwindStudentDashboard: React.FC = () => {
         <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-surface-600">Attendance</p>
-              <p className="text-2xl font-bold text-surface-900 mt-1">96%</p>
+              <p className="text-sm font-medium text-surface-600">Live Classes</p>
+              <p className="text-2xl font-bold text-surface-900 mt-1">
+                {dashboardData?.liveClasses?.total || '0'}
+              </p>
             </div>
             <div className="p-3 bg-success-500 rounded-xl">
-              <CheckCircleIcon className="w-6 h-6 text-white" />
+              <VideoCameraIcon className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Assignments and Exams */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Upcoming Assignments */}
         <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
           <div className="flex items-center justify-between mb-6">
@@ -133,27 +176,28 @@ const TailwindStudentDashboard: React.FC = () => {
             </button>
           </div>
           <div className="space-y-4">
-            {upcomingAssignments.map((assignment) => (
-              <div key={assignment.id} className="p-4 bg-surface-50 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium text-surface-900">{assignment.title}</h4>
+            {dashboardData?.assignments?.items?.slice(0, 3).map((assignment: any) => (
+              <div key={assignment.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-xl">
+                <div>
+                  <p className="text-sm font-medium text-surface-900">{assignment.title}</p>
+                  <p className="text-xs text-surface-500">{assignment.subject}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-surface-500">{assignment.due_date}</p>
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    assignment.status === 'completed' ? 'bg-success-100 text-success-800' :
-                    assignment.status === 'in-progress' ? 'bg-warn-100 text-warn-800' :
-                    'bg-surface-100 text-surface-800'
+                    assignment.status === 'completed' 
+                      ? 'bg-success-100 text-success-800' 
+                      : 'bg-warn-100 text-warn-800'
                   }`}>
                     {assignment.status}
                   </span>
                 </div>
-                <p className="text-xs text-surface-500 mb-2">{assignment.subject}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-surface-500">Due: {assignment.dueDate}</span>
-                  <button className="text-xs text-brand-600 hover:text-brand-700 font-medium">
-                    Start
-                  </button>
-                </div>
               </div>
-            ))}
+            )) || (
+              <div className="text-center py-4">
+                <p className="text-surface-500">No upcoming assignments</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -169,29 +213,27 @@ const TailwindStudentDashboard: React.FC = () => {
             </button>
           </div>
           <div className="space-y-4">
-            {upcomingExams.map((exam) => (
-              <div key={exam.id} className="p-4 bg-surface-50 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium text-surface-900">{exam.subject}</h4>
-                  <span className="text-xs text-surface-500">{exam.date}</span>
+            {dashboardData?.exams?.items?.slice(0, 3).map((exam: any) => (
+              <div key={exam.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-xl">
+                <div>
+                  <p className="text-sm font-medium text-surface-900">{exam.subject}</p>
+                  <p className="text-xs text-surface-500">{exam.date} at {exam.time}</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <span className="text-xs text-surface-500">{exam.time}</span>
-                    <span className="text-xs text-surface-500">Room {exam.room}</span>
-                  </div>
-                  <button className="text-xs text-brand-600 hover:text-brand-700 font-medium">
-                    View Details
-                  </button>
+                <div className="text-right">
+                  <p className="text-xs text-surface-500">Room {exam.room}</p>
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
+                    Upcoming
+                  </span>
                 </div>
               </div>
-            ))}
+            )) || (
+              <div className="text-center py-4">
+                <p className="text-surface-500">No upcoming exams</p>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Live Classes and Recent Grades */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Live Classes */}
         <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
           <div className="flex items-center justify-between mb-6">
@@ -204,131 +246,119 @@ const TailwindStudentDashboard: React.FC = () => {
             </button>
           </div>
           <div className="space-y-4">
-            {liveClasses.map((classItem) => (
-              <div key={classItem.id} className="p-4 bg-surface-50 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium text-surface-900">{classItem.subject}</h4>
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    classItem.status === 'live' ? 'bg-error-100 text-error-800' : 'bg-surface-100 text-surface-800'
-                  }`}>
-                    {classItem.status}
-                  </span>
-                </div>
-                <p className="text-xs text-surface-500 mb-2">{classItem.teacher}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-surface-500">{classItem.time}</span>
-                  <button className={`text-xs font-medium ${
-                    classItem.status === 'live' 
-                      ? 'text-error-600 hover:text-error-700' 
-                      : 'text-brand-600 hover:text-brand-700'
-                  }`}>
-                    {classItem.status === 'live' ? 'Join Now' : 'Remind Me'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Grades */}
-        <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-surface-900">Recent Grades</h3>
-            <button 
-              onClick={() => navigate('/report-cards')}
-              className="text-sm text-brand-600 hover:text-brand-700 font-medium"
-            >
-              View All →
-            </button>
-          </div>
-          <div className="space-y-4">
-            {recentGrades.map((grade) => (
-              <div key={grade.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-xl">
+            {dashboardData?.liveClasses?.items?.slice(0, 3).map((liveClass: any) => (
+              <div key={liveClass.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-xl">
                 <div>
-                  <p className="text-sm font-medium text-surface-900">{grade.subject}</p>
-                  <p className="text-xs text-surface-500">{grade.assignment}</p>
+                  <p className="text-sm font-medium text-surface-900">{liveClass.subject}</p>
+                  <p className="text-xs text-surface-500">{liveClass.teacher}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-surface-900">{grade.grade}</p>
-                  <p className="text-xs text-surface-500">{grade.score}%</p>
+                  <p className="text-xs text-surface-500">{liveClass.time}</p>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    liveClass.status === 'live' 
+                      ? 'bg-error-100 text-error-800' 
+                      : 'bg-success-100 text-success-800'
+                  }`}>
+                    {liveClass.status}
+                  </span>
                 </div>
               </div>
-            ))}
+            )) || (
+              <div className="text-center py-4">
+                <p className="text-surface-500">No live classes scheduled</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Notifications and Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Notifications */}
-        <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-surface-900">Notifications</h3>
-            <BellIcon className="w-5 h-5 text-surface-400" />
-          </div>
-          <div className="space-y-4">
-            {notifications.map((notification) => (
-              <div key={notification.id} className="flex items-start space-x-3 p-3 bg-surface-50 rounded-xl">
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  notification.type === 'success' ? 'bg-success-500' :
-                  notification.type === 'warning' ? 'bg-warn-500' : 'bg-brand-500'
-                }`} />
-                <div className="flex-1">
-                  <p className="text-sm text-surface-900">{notification.message}</p>
-                  <p className="text-xs text-surface-500 mt-1">{notification.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Recent Grades */}
+      <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-surface-900">Recent Grades</h3>
+          <button 
+            onClick={() => navigate('/grades')}
+            className="text-sm text-brand-600 hover:text-brand-700 font-medium"
+          >
+            View All →
+          </button>
         </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-surface-200">
+                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Subject</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Assignment</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Grade</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-surface-600">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dashboardData?.grades?.items?.slice(0, 5).map((grade: any) => (
+                <tr key={grade.id} className="border-b border-surface-100">
+                  <td className="py-3 px-4 text-sm text-surface-900">{grade.subject}</td>
+                  <td className="py-3 px-4 text-sm text-surface-900">{grade.assignment}</td>
+                  <td className="py-3 px-4 text-sm font-medium text-surface-900">{grade.grade}</td>
+                  <td className="py-3 px-4 text-sm text-surface-900">{grade.score}%</td>
+                </tr>
+              )) || (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-surface-500">
+                    No recent grades available
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
-          <h3 className="text-lg font-semibold text-surface-900 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <button 
-              onClick={() => navigate('/assignments')}
-              className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-            >
-              <ClipboardDocumentListIcon className="w-6 h-6 text-brand-600 mb-2" />
-              <span className="text-sm font-medium text-surface-900">View Assignments</span>
-            </button>
-            <button 
-              onClick={() => navigate('/exams')}
-              className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-            >
-              <DocumentTextIcon className="w-6 h-6 text-warn-600 mb-2" />
-              <span className="text-sm font-medium text-surface-900">Exam Schedule</span>
-            </button>
-            <button 
-              onClick={() => navigate('/live-classes')}
-              className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-            >
-              <VideoCameraIcon className="w-6 h-6 text-error-600 mb-2" />
-              <span className="text-sm font-medium text-surface-900">Live Classes</span>
-            </button>
-            <button 
-              onClick={() => navigate('/report-cards')}
-              className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-            >
-              <ChartBarIcon className="w-6 h-6 text-success-600 mb-2" />
-              <span className="text-sm font-medium text-surface-900">Report Cards</span>
-            </button>
-            <button 
-              onClick={() => navigate('/library')}
-              className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-            >
-              <BookOpenIcon className="w-6 h-6 text-brand-600 mb-2" />
-              <span className="text-sm font-medium text-surface-900">Library</span>
-            </button>
-            <button 
-              onClick={() => navigate('/transport')}
-              className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-            >
-              <UserGroupIcon className="w-6 h-6 text-success-600 mb-2" />
-              <span className="text-sm font-medium text-surface-900">Transport</span>
-            </button>
-          </div>
+      {/* Quick Actions */}
+      <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
+        <h3 className="text-lg font-semibold text-surface-900 mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+          <button 
+            onClick={() => navigate('/assignments')}
+            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
+          >
+            <ClipboardDocumentListIcon className="w-6 h-6 text-brand-600 mb-2" />
+            <span className="text-sm font-medium text-surface-900">Assignments</span>
+          </button>
+          <button 
+            onClick={() => navigate('/exams')}
+            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
+          >
+            <DocumentTextIcon className="w-6 h-6 text-error-600 mb-2" />
+            <span className="text-sm font-medium text-surface-900">Exams</span>
+          </button>
+          <button 
+            onClick={() => navigate('/live-classes')}
+            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
+          >
+            <VideoCameraIcon className="w-6 h-6 text-success-600 mb-2" />
+            <span className="text-sm font-medium text-surface-900">Live Classes</span>
+          </button>
+          <button 
+            onClick={() => navigate('/grades')}
+            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
+          >
+            <ChartBarIcon className="w-6 h-6 text-warn-600 mb-2" />
+            <span className="text-sm font-medium text-surface-900">Grades</span>
+          </button>
+          <button 
+            onClick={() => navigate('/schedule')}
+            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
+          >
+            <CalendarIcon className="w-6 h-6 text-brand-600 mb-2" />
+            <span className="text-sm font-medium text-surface-900">Schedule</span>
+          </button>
+          <button 
+            onClick={() => navigate('/communication')}
+            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
+          >
+            <BellIcon className="w-6 h-6 text-success-600 mb-2" />
+            <span className="text-sm font-medium text-surface-900">Messages</span>
+          </button>
         </div>
       </div>
     </div>

@@ -1,176 +1,35 @@
 /**
- * Authentication layout component
+ * Authentication layout component with Tailwind CSS
  */
 
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, Container, Paper, Typography, useTheme, useMediaQuery } from '@mui/material';
-import { School } from '@mui/icons-material';
 
 const AuthLayout: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Background decoration */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: -50,
-          right: -50,
-          width: 200,
-          height: 200,
-          borderRadius: '50%',
-          background: 'rgba(255, 255, 255, 0.1)',
-          display: { xs: 'none', md: 'block' },
-        }}
-      />
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: -100,
-          left: -100,
-          width: 300,
-          height: 300,
-          borderRadius: '50%',
-          background: 'rgba(255, 255, 255, 0.05)',
-          display: { xs: 'none', md: 'block' },
-        }}
-      />
-
-      <Container
-        component="main"
-        maxWidth="lg"
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: 'center',
-          justifyContent: 'center',
-          py: { xs: 4, md: 8 },
-          gap: { xs: 4, md: 8 },
-          position: 'relative',
-          zIndex: 1,
-        }}
-      >
-        {/* Left side - Branding */}
-        {!isMobile && (
-          <Box
-            sx={{
-              flex: 1,
-              color: 'white',
-              textAlign: 'center',
-              maxWidth: 500,
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mb: 4,
-              }}
-            >
-              <School sx={{ fontSize: 60, mr: 2 }} />
-              <Typography variant="h3" component="h1" fontWeight={700}>
-                E-School
-              </Typography>
-            </Box>
-            
-            <Typography variant="h5" gutterBottom fontWeight={500} sx={{ mb: 3 }}>
-              Complete School Management Platform
-            </Typography>
-            
-            <Typography variant="body1" sx={{ opacity: 0.9, lineHeight: 1.6 }}>
-              Streamline your educational institution with our comprehensive platform 
-              that integrates E-Learning, Content Management, and Customer Relationship 
-              Management in one unified solution.
-            </Typography>
-
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 4 }}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" fontWeight={600}>
-                  E-Learning
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                  Live classes & assignments
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" fontWeight={600}>
-                  CMS
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                  Content management
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" fontWeight={600}>
-                  CRM
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                  Student & parent relations
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-        )}
-
-        {/* Right side - Auth Form */}
-        <Box
-          sx={{
-            flex: { xs: 'none', md: 1 },
-            width: { xs: '100%', sm: 400, md: 450 },
-            maxWidth: 450,
-          }}
-        >
-          <Paper
-            elevation={24}
-            sx={{
-              p: { xs: 3, sm: 4 },
-              borderRadius: 3,
-              backgroundColor: 'background.paper',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-            }}
-          >
-            {/* Mobile branding */}
-            {isMobile && (
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mb: 2,
-                    color: 'primary.main',
-                  }}
-                >
-                  <School sx={{ fontSize: 40, mr: 1 }} />
-                  <Typography variant="h4" component="h1" fontWeight={700}>
-                    E-School
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  School Management Platform
-                </Typography>
-              </Box>
-            )}
+    <div className="fixed inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 overflow-y-auto">
+      <div className="min-h-full flex items-start justify-center p-4 py-8">
+        <div className="w-full max-w-md my-8">
+          <div className="bg-white rounded-2xl shadow-2xl p-8">
+            {/* Branding - visible on all screen sizes */}
+            <div className="text-center mb-6">
+              <div className="flex items-center justify-center mb-3">
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
+                  </svg>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">EduSphere</h1>
+              </div>
+              <p className="text-sm text-gray-600">School Management Platform</p>
+            </div>
 
             {/* Auth form outlet */}
             <Outlet />
-          </Paper>
-        </Box>
-      </Container>
-    </Box>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
