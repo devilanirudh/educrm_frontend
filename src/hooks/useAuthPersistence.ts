@@ -20,12 +20,14 @@ export const useAuthPersistence = () => {
         console.log('🔍 Current localStorage state:', currentState);
         console.log('🔍 Current pathname:', window.location.pathname);
         
+        // If we're already authenticated in Redux, handle routing
         if (currentState.isAuthenticated === 'true' && currentState.token) {
           console.log('✅ Already authenticated, skipping verification');
           
-          // If we're on login page or root page, redirect to dashboard
-          if (window.location.pathname === '/login' || window.location.pathname === '/') {
-            console.log('🔄 Redirecting to dashboard from:', window.location.pathname);
+          // Check if we're on any auth-related page and redirect to dashboard
+          const authPaths = ['/login', '/auth/login', '/register', '/auth/register', '/forgot-password', '/auth/forgot-password', '/reset-password', '/auth/reset-password', '/'];
+          if (authPaths.includes(window.location.pathname)) {
+            console.log('🔄 Redirecting to dashboard from auth page:', window.location.pathname);
             window.location.href = '/dashboard';
           } else {
             console.log('📍 On protected page, current path:', window.location.pathname);
@@ -33,11 +35,8 @@ export const useAuthPersistence = () => {
           return;
         }
         
-        // Check if we're on login page (let login component handle it)
-        if (window.location.pathname === '/login') {
-          console.log('🔍 On login page - skipping useAuthPersistence');
-          return;
-        }
+        // If Firebase user exists but not authenticated in Redux, verify with backend
+        console.log('🔄 Firebase user exists but not authenticated in Redux, verifying with backend...');
         
         try {
           const idToken = await firebaseUser.getIdToken();
@@ -61,6 +60,13 @@ export const useAuthPersistence = () => {
             
             dispatch(rehydrateAuth({ user: userData, token: idToken }));
             console.log('✅ Auth state rehydrated for:', userData.email);
+            
+            // Redirect to dashboard after successful verification
+            const authPaths = ['/login', '/auth/login', '/register', '/auth/register', '/forgot-password', '/auth/forgot-password', '/reset-password', '/auth/reset-password', '/'];
+            if (authPaths.includes(window.location.pathname)) {
+              console.log('🔄 Redirecting to dashboard after successful verification');
+              window.location.href = '/dashboard';
+            }
           } else {
             console.error('❌ Backend verification failed');
             await signOut(auth);
