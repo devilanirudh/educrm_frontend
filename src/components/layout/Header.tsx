@@ -2,7 +2,7 @@
  * Header component
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -31,6 +31,8 @@ import { RootState, useAppDispatch } from '../../store';
 import { toggleSidebar, toggleTheme } from '../../store/uiSlice';
 import { logout } from '../../store/authSlice';
 import { authService, tokenUtils } from '../../services/auth';
+import { useUnreadCount } from '../../hooks/useNotifications';
+import NotificationsDropdown from '../common/NotificationsDropdown';
 
 
 interface HeaderProps {
@@ -38,11 +40,26 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
+  console.log('🏗️ Header component rendering...');
+  
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
   const { theme } = useSelector((state: RootState) => state.ui);
 
+  // Notifications state
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { data: unreadCount = { count: 0 }, error: unreadCountError } = useUnreadCount();
+  
+  // Show demo count if API fails
+  const displayCount = unreadCountError ? 2 : unreadCount.count;
+  
+  console.log('🔔 Notifications state:', { notificationsOpen, displayCount, unreadCountError });
+  
+  // Track notifications state changes
+  useEffect(() => {
+    console.log('🔔 Notifications state changed to:', notificationsOpen);
+  }, [notificationsOpen]);
   
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
@@ -99,16 +116,27 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
     dispatch(toggleTheme());
   };
 
+  const handleNotificationsToggle = () => {
+    console.log('🔔 Bell icon clicked! Current state:', notificationsOpen);
+    setNotificationsOpen(!notificationsOpen);
+    console.log('🔔 Setting notifications open to:', !notificationsOpen);
+  };
+
+  const handleNotificationsClose = () => {
+    setNotificationsOpen(false);
+  };
+
   return (
-    <AppBar
-      position="fixed"
-      sx={{
-        zIndex: (theme) => theme.zIndex.drawer + 1,
-        backgroundColor: 'background.paper',
-        color: 'text.primary',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      }}
-    >
+    <>
+      <AppBar
+        position="fixed"
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          backgroundColor: 'background.paper',
+          color: 'text.primary',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        }}
+      >
       <Toolbar>
         {/* Menu button */}
         <IconButton
@@ -136,9 +164,36 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
             {theme === 'dark' ? <LightMode /> : <DarkMode />}
           </IconButton>
 
+          {/* Test button */}
+          <button 
+            onClick={() => alert('Test button clicked!')}
+            style={{ 
+              border: '2px solid blue', 
+              padding: '8px', 
+              margin: '0 4px',
+              backgroundColor: 'yellow'
+            }}
+          >
+            TEST
+          </button>
+
           {/* Notifications */}
-          <IconButton color="inherit">
-            <Badge badgeContent={4} color="error">
+          <IconButton 
+            color="inherit"
+            onClick={(e) => {
+              alert('🔔 Bell icon clicked!'); // Simple test
+              console.log('🔔 IconButton clicked!', e);
+              e.preventDefault();
+              e.stopPropagation();
+              handleNotificationsToggle();
+            }}
+            aria-label="notifications"
+            sx={{ 
+              border: '2px solid red', // Debug border
+              '&:hover': { backgroundColor: 'rgba(255, 0, 0, 0.2)' } // Debug hover
+            }}
+          >
+            <Badge badgeContent={displayCount} color="error">
               <Notifications />
             </Badge>
           </IconButton>
@@ -211,7 +266,14 @@ const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
           </Menu>
         </Box>
       </Toolbar>
-    </AppBar>
+      </AppBar>
+
+    {/* Notifications Dropdown */}
+    <NotificationsDropdown 
+      isOpen={notificationsOpen} 
+      onClose={handleNotificationsClose} 
+    />
+  </>
   );
 };
 

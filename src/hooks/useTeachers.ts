@@ -12,7 +12,13 @@ export const useTeachers = (params?: TeacherFilters) => {
     refetch: refetchTeachers
   } = useQuery<PaginatedResponse<Teacher>>(
     ['teachers', params],
-    () => teachersService.getTeachers(params)
+    () => teachersService.getTeachers(params),
+    {
+      refetchOnMount: false, // Don't refetch if data is fresh
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
+      cacheTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    }
   );
 
   const { data: teacherHeadcountTrend, isLoading: isTeacherTrendLoading } = useQuery(

@@ -39,10 +39,16 @@ const ProtectedRoute = ({
   const { token, isAuthenticated } = useAppSelector((state) => state.auth);
 
 
+  // Debug authentication state
+  console.log('🔍 ProtectedRoute - Auth state:', { isAuthenticated, hasToken: !!token, pathname: location.pathname });
+  
   // Redirect to login if not authenticated
   if (!isAuthenticated || !token) {
+    console.log('🚫 ProtectedRoute - Not authenticated, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
+  
+  console.log('✅ ProtectedRoute - Authenticated, allowing access');
 
 
 

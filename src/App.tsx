@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { useAuthPersistence } from './hooks/useAuthPersistence';
+
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
@@ -9,12 +10,17 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import StudentDashboard from './pages/dashboard/StudentDashboard';
 import TeacherDashboard from './pages/dashboard/TeacherDashboard';
+import TailwindAdminDashboard from './pages/dashboard/TailwindAdminDashboard';
+import TailwindTeacherDashboard from './pages/dashboard/TailwindTeacherDashboard';
+import TailwindStudentDashboard from './pages/dashboard/TailwindStudentDashboard';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AuthLayout from './components/layout/AuthLayout';
 import Layout from './components/layout/Layout';
+import TailwindLayout from './components/layout/TailwindLayout';
+import GlobalLoader from './components/common/GlobalLoader';
 
 // Academic pages
-import StudentsPage from './pages/students/StudentsPage';
+import StudentsPage from './pages/students/TailwindStudentsPage';
 import TeachersPage from './pages/teachers/TeachersPage';
 import ClassesPage from './pages/classes/ClassesPage';
 import AssignmentsPage from './pages/assignments/AssignmentsPage';
@@ -38,6 +44,8 @@ import CommunicationPage from './pages/communication/CommunicationPage';
 
 // Other pages
 import InventoryPage from './pages/inventory/InventoryPage';
+import NotificationsPage from './pages/notifications/NotificationsPage';
+import RoleManagementPage from './pages/admin/RoleManagementPage';
 
 const queryClient = new QueryClient();
 
@@ -47,6 +55,7 @@ const App: React.FC = () => {
 
   return (
   <QueryClientProvider client={queryClient}>
+    <GlobalLoader />
     <Routes>
       {/* Auth Routes */}
       <Route element={<AuthLayout />}>
@@ -61,14 +70,48 @@ const App: React.FC = () => {
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
-      {/* Protected Routes */}
+      {/* Protected Routes with Tailwind Layout */}
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Layout>
-              <AdminDashboard />
-            </Layout>
+            <TailwindLayout>
+              <TailwindAdminDashboard />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Role-based Dashboard Routes */}
+      <Route
+        path="/admin-dashboard"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <TailwindAdminDashboard />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher-dashboard"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <TailwindTeacherDashboard />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/student-dashboard"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <TailwindStudentDashboard />
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -78,9 +121,9 @@ const App: React.FC = () => {
         path="/students"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <StudentsPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -88,9 +131,9 @@ const App: React.FC = () => {
         path="/teachers"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <TeachersPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -98,9 +141,9 @@ const App: React.FC = () => {
         path="/classes"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <ClassesPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -108,9 +151,9 @@ const App: React.FC = () => {
         path="/assignments"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <AssignmentsPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -118,9 +161,21 @@ const App: React.FC = () => {
         path="/exams"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <ExamsPage />
-            </Layout>
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Admin Management Routes */}
+      <Route
+        path="/role-management"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <RoleManagementPage />
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -130,9 +185,9 @@ const App: React.FC = () => {
         path="/fees"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <FeesPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -140,9 +195,9 @@ const App: React.FC = () => {
         path="/live-classes"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <LiveClassesPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -150,9 +205,9 @@ const App: React.FC = () => {
         path="/library"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <LibraryPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -160,9 +215,9 @@ const App: React.FC = () => {
         path="/transport"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <TransportPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -170,9 +225,9 @@ const App: React.FC = () => {
         path="/hostel"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <HostelPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -180,9 +235,9 @@ const App: React.FC = () => {
         path="/events"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <EventsPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -192,9 +247,9 @@ const App: React.FC = () => {
         path="/cms"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <CMSPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -202,9 +257,9 @@ const App: React.FC = () => {
         path="/crm"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <CRMPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -212,9 +267,9 @@ const App: React.FC = () => {
         path="/form-builder"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <FormBuilderPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -222,9 +277,9 @@ const App: React.FC = () => {
         path="/form-builder/advanced"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <AdvancedFormBuilderPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -232,9 +287,9 @@ const App: React.FC = () => {
         path="/reports"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <ReportsPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -242,9 +297,19 @@ const App: React.FC = () => {
         path="/communication"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <CommunicationPage />
-            </Layout>
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <NotificationsPage />
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
@@ -254,13 +319,13 @@ const App: React.FC = () => {
         path="/inventory"
         element={
           <ProtectedRoute>
-            <Layout>
+            <TailwindLayout>
               <InventoryPage />
-            </Layout>
+            </TailwindLayout>
           </ProtectedRoute>
         }
       />
-    </Routes>
+      </Routes>
   </QueryClientProvider>
   );
 };

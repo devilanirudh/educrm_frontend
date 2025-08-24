@@ -10,14 +10,9 @@ const Canvas: React.FC = () => {
     id: "canvas",
   });
 
-  // Define base field names that cannot be deleted
-  const baseFieldNames = [
-    'student_id', 'admission_date', 'academic_year', 'roll_number', 
-    'section', 'blood_group', 'transportation_mode', 'is_hosteller'
-  ];
-
-  const isBaseField = (fieldName: string) => {
-    return baseFieldNames.includes(fieldName);
+  // Check if field is a base field (required field) that cannot be deleted
+  const isBaseField = (field: any) => {
+    return field.is_required === true;
   };
 
   return (
@@ -41,9 +36,9 @@ const Canvas: React.FC = () => {
             index={index}
             moveField={moveField}
             onSelect={() => selectField(field.id)}
-            isBaseField={isBaseField(field.field_name)}
+            isBaseField={isBaseField(field)}
           />
-          {isBaseField(field.field_name) && (
+          {isBaseField(field) && (
             <Chip
               label="Base Field"
               size="small"

@@ -1,95 +1,47 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from 'react-query';
-import {
-  MagnifyingGlassIcon,
+import { 
+  MagnifyingGlassIcon, 
+  FunnelIcon, 
   PlusIcon,
-  FunnelIcon,
-  AdjustmentsHorizontalIcon,
   EllipsisVerticalIcon,
-  PencilIcon,
   EyeIcon,
+  PencilIcon,
   TrashIcon,
+  DocumentArrowDownIcon,
   XMarkIcon,
+  CogIcon,
+  AdjustmentsHorizontalIcon
 } from '@heroicons/react/24/outline';
-import { examsService, Exam } from '../../services/exams';
-import { useExams } from '../../hooks/useExams';
+import { useStudents } from '../../hooks/useStudents';
 import { useForm } from '../../hooks/useForm';
+import { studentsService, Student } from '../../services/students';
 import TailwindFormRenderer from '../../components/form-builder/TailwindFormRenderer';
 import SkeletonLoader from '../../components/common/SkeletonLoader';
 
-const ExamsPage: React.FC = () => {
+
+
+const TailwindStudentsPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
-  // State variables
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [showFilters, setShowFilters] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
-  const [showUserMenu, setShowUserMenu] = useState<number | null>(null);
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [localExams, setLocalExams] = useState<any>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [examToDelete, setExamToDelete] = useState<Exam | null>(null);
+  const [localStudents, setLocalStudents] = useState<any>(null);
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState<number | null>(null);
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
-  const [tableVisibleColumns, setTableVisibleColumns] = useState<string[]>([]);
-  
-  // Refs for click outside detection
   const columnsMenuRef = useRef<HTMLDivElement>(null);
 
-  // Hooks
-  const { 
-    exams, 
-    isExamsLoading, 
-    examsError, 
-    refetchExams, 
-    createExam, 
-    updateExam, 
-    deleteExam, 
-    isDeletingExam 
-  } = useExams({
-    page,
-    per_page: rowsPerPage,
-    search: searchTerm || undefined,
-    ...filters,
-  });
-
-  const { formSchema, isFormSchemaLoading, formSchemaError } = useForm('exam_form');
-
-  // Visible columns configuration
-  const visibleColumns = useMemo(() => {
-    if (formSchema?.fields) {
-      return formSchema.fields.filter(field => field.is_visible_in_listing);
-    }
-    // Default columns if form schema is not available
-    return [
-      { field_name: 'title', label: 'Title', is_visible_in_listing: true },
-      { field_name: 'exam_date', label: 'Exam Date', is_visible_in_listing: true },
-      { field_name: 'subject', label: 'Subject', is_visible_in_listing: true },
-    ];
-  }, [formSchema]);
-
-  // Initialize table visible columns
-  useEffect(() => {
-    if (visibleColumns.length > 0 && tableVisibleColumns.length === 0) {
-      const defaultColumns = visibleColumns.slice(0, 4).map(col => col.field_name);
-      setTableVisibleColumns(defaultColumns);
-    }
-  }, [visibleColumns, tableVisibleColumns.length]);
-
-  // Set local state when React Query data is available
-  useEffect(() => {
-    if (exams && !localExams) {
-      setLocalExams(exams);
-    }
-  }, [exams, localExams]);
-
-  // Click outside detection for columns menu
+  // Close columns menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (columnsMenuRef.current && !columnsMenuRef.current.contains(event.target as Node)) {
@@ -98,118 +50,155 @@ const ExamsPage: React.FC = () => {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
-  // Filter exams based on search term
-  const filteredExams = useMemo(() => {
-    if (!searchTerm) {
-      return localExams?.exams || exams?.data || [];
+  // Use the actual API hooks
+  const { 
+    students, 
+    isStudentsLoading, 
+    studentsError, 
+    deleteStudent, 
+    isDeletingStudent,
+    updateStudent
+  } = useStudents({
+    page,
+    per_page: rowsPerPage,
+    search: searchTerm || undefined,
+    ...filters,
+  });
+
+  const { formSchema, isFormSchemaLoading, formSchemaError, isFormSchemaError } = useForm('student_form');
+
+  const [tableVisibleColumns, setTableVisibleColumns] = useState<string[]>(['student', 'student_id', 'academic_year', 'roll_number', 'section', 'status', 'actions']);
+
+  const visibleColumns = useMemo(() => {
+    if (formSchema?.fields) {
+      return formSchema.fields.filter(field => field.is_visible_in_listing);
     }
-    
-    const examsData = localExams?.exams || exams?.data || [];
-    return examsData.filter((exam: Exam) =>
-      exam.title.toLowerCase().includes(searchTerm.toLowerCase())
+    // Default columns if form schema is not available
+    return [
+      { field_name: 'student_id', label: 'Student ID', is_visible_in_listing: true },
+      { field_name: 'academic_year', label: 'Academic Year', is_visible_in_listing: true },
+      { field_name: 'roll_number', label: 'Roll Number', is_visible_in_listing: true },
+      { field_name: 'section', label: 'Section', is_visible_in_listing: true },
+    ];
+  }, [formSchema]);
+
+  // Initialize table visible columns when form schema changes (only on first load)
+  React.useEffect(() => {
+    if (visibleColumns.length > 0 && tableVisibleColumns.length === 0) {
+      const allColumnIds = ['student', ...visibleColumns.map(col => col.field_name), 'status', 'actions'];
+      setTableVisibleColumns(allColumnIds);
+    }
+  }, [visibleColumns, tableVisibleColumns.length]);
+
+  // Set local state when React Query data is available
+  React.useEffect(() => {
+    if (students && !localStudents) {
+      setLocalStudents(students);
+      console.log('Setting local students from React Query:', students);
+    }
+  }, [students, localStudents]);
+
+  // Filter students based on search and filters
+  const filteredStudents = useMemo(() => {
+    // Handle both API response structures
+    const studentsData = localStudents?.students || (students as any)?.students || students?.data || [];
+    return studentsData.filter((student: Student) => {
+      const matchesSearch = student.user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           student.user.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           student.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           student.student_id.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
+    });
+  }, [localStudents, students, searchTerm]);
+
+  // Get unique classes for filter
+  const classes = Array.from(new Set(
+    (localStudents?.students || (students as any)?.students || students?.data || []).map((student: Student) => student.current_class).filter(Boolean)
+  )) as string[];
+
+  const getStatusBadge = (isActive: boolean) => {
+    return (
+      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+        isActive 
+          ? 'bg-success-100 text-success-800' 
+          : 'bg-surface-100 text-surface-800'
+      }`}>
+        {isActive ? 'Active' : 'Inactive'}
+      </span>
     );
-  }, [searchTerm, localExams, exams]);
-
-  // Event handlers
-  const handleAddExam = () => {
-    setSelectedExam(null);
-    setIsFormOpen(true);
   };
 
-  const handleEditExam = (exam: Exam) => {
-    setSelectedExam(exam);
-    setIsFormOpen(true);
-    setShowUserMenu(null);
-  };
-
-  const handleDeleteExam = (exam: Exam) => {
-    setExamToDelete(exam);
-    setIsDeleteDialogOpen(true);
-    setShowUserMenu(null);
+  const handleAddStudent = () => {
+    setSelectedStudent(null);
+    setFormOpen(true);
   };
 
   const handleFormClose = () => {
-    setIsFormOpen(false);
-    setSelectedExam(null);
+    setFormOpen(false);
+    setSelectedStudent(null);
   };
 
   const handleFormSave = async (data: any) => {
     try {
-      if (selectedExam) {
-        updateExam({ id: selectedExam.id, data });
-        setSuccessMessage('Exam updated successfully!');
+      if (selectedStudent) {
+        updateStudent({ id: selectedStudent.id, data });
+        setSuccessMessage('Student updated successfully!');
       } else {
-        const result = await examsService.createExamFromDynamicForm(data);
-        queryClient.invalidateQueries('exams');
-        queryClient.refetchQueries('exams');
-        if (localExams) {
-          setLocalExams({
-            ...localExams,
-            exams: [...localExams.exams, result.exam],
-            total: localExams.total + 1
+        // Use the dynamic form endpoint for new students
+        const result = await studentsService.createStudentFromDynamicForm(data);
+        // Invalidate the students query to refresh the list
+        queryClient.invalidateQueries('students');
+        // Also refetch the data immediately
+        queryClient.refetchQueries('students');
+        // Update local state as fallback
+        if (localStudents) {
+          setLocalStudents({
+            ...localStudents,
+            students: [...localStudents.students, result.student],
+            total: localStudents.total + 1
           });
         }
-        setSuccessMessage('Exam created successfully!');
+        setSuccessMessage('Student created successfully!');
       }
       handleFormClose();
+      // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to save exam');
+      setError(err.message || 'Failed to save student');
     }
   };
 
-  const handleConfirmDelete = async () => {
-    if (!examToDelete) return;
-
-    try {
-      setError(null);
-      await deleteExam(examToDelete.id);
-
-      if (localExams?.exams) {
-        const updatedExams = localExams.exams.filter((e: Exam) => e.id !== examToDelete.id);
-        setLocalExams({
-          ...localExams,
-          exams: updatedExams,
-          total: localExams.total - 1
-        });
-      }
-
-      setSuccessMessage(`Exam ${examToDelete.title} has been successfully deleted.`);
-      setIsDeleteDialogOpen(false);
-      setExamToDelete(null);
-
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete exam');
-      setIsDeleteDialogOpen(false);
-      setExamToDelete(null);
-    }
-  };
-
-  const handleCancelDelete = () => {
-    setIsDeleteDialogOpen(false);
-    setExamToDelete(null);
-  };
-
-  // Function to map exam data to form fields
-  const mapExamToFormData = (exam: Exam): Record<string, any> => {
-    if (!exam || !formSchema) return {};
+  // Function to map student data to form fields
+  const mapStudentToFormData = (student: Student): Record<string, any> => {
+    if (!student || !formSchema) return {};
 
     const formData: Record<string, any> = {};
 
+    // Map form fields to student data
     formSchema.fields.forEach(field => {
       let value: any = undefined;
 
-      if (exam.dynamic_data && exam.dynamic_data[field.field_name] !== undefined) {
-        value = exam.dynamic_data[field.field_name];
-      } else if ((exam as any)[field.field_name] !== undefined) {
-        value = (exam as any)[field.field_name];
+      // First check dynamic_data (custom form fields)
+      if (student.dynamic_data && student.dynamic_data[field.field_name] !== undefined) {
+        value = student.dynamic_data[field.field_name];
+      }
+      // Then check direct student properties
+      else if ((student as any)[field.field_name] !== undefined) {
+        value = (student as any)[field.field_name];
+      }
+      // Finally check user properties for user-related fields
+      else if (student.user && (student.user as any)[field.field_name] !== undefined) {
+        value = (student.user as any)[field.field_name];
       }
 
+      // Only add the value if it's not undefined
       if (value !== undefined) {
+        // Format date values for HTML date input (YYYY-MM-DD)
         if (field.field_type === 'date' && value) {
           const date = new Date(value);
           if (!isNaN(date.getTime())) {
@@ -223,60 +212,138 @@ const ExamsPage: React.FC = () => {
       }
     });
 
+    console.log('🔍 Mapping student to form data:', {
+      student,
+      formSchema: formSchema.fields.map(f => f.field_name),
+      mappedData: formData
+    });
+
     return formData;
   };
 
-  // Status badge component
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'upcoming': { bg: 'bg-info-100', text: 'text-info-800', label: 'Upcoming' },
-      'ongoing': { bg: 'bg-warning-100', text: 'text-warning-800', label: 'Ongoing' },
-      'completed': { bg: 'bg-success-100', text: 'text-success-800', label: 'Completed' },
-      'cancelled': { bg: 'bg-error-100', text: 'text-error-800', label: 'Cancelled' },
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.upcoming;
-
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-        {config.label}
-      </span>
-    );
+  const handleEditStudent = (student: Student) => {
+    console.log('🔍 handleEditStudent called with student:', student);
+    const mappedData = mapStudentToFormData(student);
+    console.log('🔍 Mapped data for form:', mappedData);
+    setSelectedStudent(student);
+    setFormOpen(true);
+    setShowUserMenu(null);
   };
 
-  // Subjects for filter
-  const subjects = ['Mathematics', 'Science', 'English', 'History', 'Computer Science', 'Physical Education', 'Art', 'Music'];
+  const handleDeleteStudent = (student: Student) => {
+    setStudentToDelete(student);
+    setDeleteDialogOpen(true);
+    setShowUserMenu(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!studentToDelete) return;
+
+    try {
+      setError(null);
+      await deleteStudent(studentToDelete.id);
+
+      // Update local state immediately for better UX
+      if (localStudents?.students) {
+        const updatedStudents = localStudents.students.filter((s: Student) => s.id !== studentToDelete.id);
+        setLocalStudents({
+          ...localStudents,
+          students: updatedStudents,
+          total: localStudents.total - 1
+        });
+      }
+
+      setSuccessMessage(`Student ${studentToDelete.user.first_name} ${studentToDelete.user.last_name} has been successfully deactivated.`);
+      setDeleteDialogOpen(false);
+      setStudentToDelete(null);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete student');
+      setDeleteDialogOpen(false);
+      setStudentToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setStudentToDelete(null);
+  };
+
+  const handleEditForm = () => {
+    // Navigate to advanced form builder
+    navigate('/form-builder/advanced?type=student');
+  };
 
   // Show form not found error with option to create new form
-  if (formSchemaError && !isFormSchemaLoading) {
+  if (isFormSchemaError && !isFormSchemaLoading) {
     return (
-      <div className="p-6">
+      <div className="space-y-6">
         <div className="bg-error-50 border border-error-200 rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-error-900 mb-2">Exam Form Not Found</h2>
+          <h2 className="text-xl font-bold text-error-900 mb-4">Student Form Not Found</h2>
           <p className="text-error-700 mb-4">
-            The default exam form could not be loaded. This might be because the form hasn't been created yet
-            or there's a connection issue with the server.
+            The default student form could not be loaded. This might be because:
           </p>
-          <button
-            onClick={() => navigate('/form-builder/advanced?type=exam')}
-            className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors duration-200"
-          >
-            <PencilIcon className="w-4 h-4 mr-2" />
-            Edit Form Schema
-          </button>
+          <ul className="list-disc list-inside text-error-700 mb-6 space-y-1">
+            <li>The form hasn't been created yet</li>
+            <li>There's a connection issue with the server</li>
+          </ul>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div 
+              className="bg-white border border-surface-200 rounded-xl p-4 cursor-pointer hover:shadow-soft transition-shadow duration-200"
+              onClick={handleEditForm}
+            >
+              <div className="flex items-center gap-3">
+                <CogIcon className="w-6 h-6 text-brand-600" />
+                <div>
+                  <h3 className="font-semibold text-surface-900">Edit Form Schema</h3>
+                  <p className="text-sm text-surface-600">Access the advanced form builder to modify the student form</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
+
+
+
+  if (studentsError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-surface-900 mb-4">Error Loading Students</h2>
+          <p className="text-surface-600">Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const hasStudentsData = (localStudents?.students && localStudents.students.length > 0) || 
+                         ((students as any)?.students && (students as any).students.length > 0) ||
+                         (students?.data && students.data.length > 0);
+
+  // Debug logging
+  console.log('Students Debug:', {
+    students,
+    localStudents,
+    hasStudentsData,
+    studentsData: students?.data,
+    localStudentsData: localStudents?.students,
+    filteredStudentsLength: filteredStudents.length
+  });
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-900">Exams</h1>
+          <h1 className="text-2xl font-bold text-surface-900">Students</h1>
           <p className="mt-1 text-sm text-surface-600">
-            Manage examinations, tests, and academic assessments.
+            Manage student information, enrollment, and academic records.
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-3">
@@ -305,7 +372,7 @@ const ExamsPage: React.FC = () => {
                         disabled={true}
                         className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2 opacity-50"
                       />
-                      <span className="text-sm text-surface-700">Exam</span>
+                      <span className="text-sm text-surface-700">Student</span>
                     </label>
                   </div>
                   
@@ -356,21 +423,21 @@ const ExamsPage: React.FC = () => {
               </div>
             )}
           </div>
-
-          <button
-            onClick={() => navigate('/form-builder/advanced?type=exam')}
+          
+          <button 
             className="inline-flex items-center px-4 py-2 bg-surface-100 text-surface-700 text-sm font-medium rounded-xl hover:bg-surface-200 transition-colors duration-200"
+            onClick={handleEditForm}
           >
-            <PencilIcon className="w-4 h-4 mr-2" />
+            <CogIcon className="w-4 h-4 mr-2" />
             Edit Form
           </button>
-          <button
-            onClick={handleAddExam}
+          <button 
+            className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors duration-200"
+            onClick={handleAddStudent}
             disabled={isFormSchemaLoading}
-            className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <PlusIcon className="w-4 h-4 mr-2" />
-            Add Exam
+            Add Student
           </button>
         </div>
       </div>
@@ -413,7 +480,7 @@ const ExamsPage: React.FC = () => {
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-surface-400" />
             <input
               type="text"
-              placeholder="Search exams..."
+              placeholder="Search students..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
@@ -442,20 +509,18 @@ const ExamsPage: React.FC = () => {
                   className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 >
                   <option value="all">All Status</option>
-                  <option value="upcoming">Upcoming</option>
-                  <option value="ongoing">Ongoing</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">Subject</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">Class</label>
                 <select
                   className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 >
-                  <option value="all">All Subjects</option>
-                  {subjects.map((subject) => (
-                    <option key={subject} value={subject}>{subject}</option>
+                  <option value="all">All Classes</option>
+                  {classes.map((cls) => (
+                    <option key={cls} value={cls}>{cls}</option>
                   ))}
                 </select>
               </div>
@@ -467,7 +532,7 @@ const ExamsPage: React.FC = () => {
       {/* Results Summary */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-surface-600">
-          Showing {filteredExams.length} of {(localExams?.total || (exams as any)?.total || exams?.total || 0)} exams
+          Showing {filteredStudents.length} of {(localStudents?.total || (students as any)?.total || students?.total || 0)} students
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-surface-600">View:</span>
@@ -479,17 +544,17 @@ const ExamsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Exams Table - Desktop */}
-        {isExamsLoading ? (
+      {/* Students Table - Desktop */}
+      {isStudentsLoading ? (
         <SkeletonLoader rows={8} />
-      ) : filteredExams.length > 0 ? (
+      ) : hasStudentsData ? (
         <div className="hidden lg:block bg-white rounded-2xl shadow-soft border border-surface-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-surface-200">
               <thead className="bg-surface-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-surface-500 uppercase tracking-wider">
-                    Exam
+                    Student
                   </th>
                   {visibleColumns
                     .filter(col => tableVisibleColumns.includes(col.field_name))
@@ -507,22 +572,22 @@ const ExamsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-surface-200">
-                {filteredExams.map((exam: Exam) => (
-                  <tr key={exam.id} className="hover:bg-surface-50">
+                {filteredStudents.map((student: Student) => (
+                  <tr key={student.id} className="hover:bg-surface-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-8 w-8">
                           <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center">
                             <span className="text-sm font-medium text-brand-800">
-                              {exam.title[0]}
+                              {student.user.first_name[0]}
                             </span>
                           </div>
                         </div>
                         <div className="ml-3">
                           <div className="text-sm font-medium text-surface-900">
-                            {exam.title}
+                            {student.user.first_name} {student.user.last_name}
                           </div>
-                                                     <div className="text-sm text-surface-500">{(exam as any).subject || 'N/A'}</div>
+                          <div className="text-sm text-surface-500">{student.user.email}</div>
                         </div>
                       </div>
                     </td>
@@ -530,35 +595,45 @@ const ExamsPage: React.FC = () => {
                       .filter(col => tableVisibleColumns.includes(col.field_name))
                       .map(col => (
                         <td key={col.field_name} className="px-6 py-4 whitespace-nowrap text-sm text-surface-900">
-                        {(() => {
-                          let value;
-                          if (exam.dynamic_data && exam.dynamic_data[col.field_name] !== undefined) {
-                            value = exam.dynamic_data[col.field_name];
-                            } else if ((exam as any)[col.field_name] !== undefined) {
-                              value = (exam as any)[col.field_name];
-                            } else {
+                          {(() => {
+                            let value;
+                            // First check dynamic_data
+                            if (student.dynamic_data && student.dynamic_data[col.field_name] !== undefined) {
+                              value = student.dynamic_data[col.field_name];
+                            }
+                            // Then check direct student properties
+                            else if ((student as any)[col.field_name] !== undefined) {
+                              value = (student as any)[col.field_name];
+                            }
+                            // Finally check user properties for user-related fields
+                            else if (student.user && (student.user as any)[col.field_name] !== undefined) {
+                              value = (student.user as any)[col.field_name];
+                            }
+                            else {
                               value = '-';
                             }
+                            
+                            // Convert to string to avoid React warnings
                             return String(value);
                           })()}
                         </td>
                       ))}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(exam.status || 'upcoming')}
+                      {getStatusBadge(student.is_active)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="relative">
                         <button 
                           className="text-surface-400 hover:text-surface-600"
-                          onClick={() => setShowUserMenu(showUserMenu === exam.id ? null : exam.id)}
+                          onClick={() => setShowUserMenu(showUserMenu === student.id ? null : student.id)}
                         >
                           <EllipsisVerticalIcon className="w-4 h-4" />
                         </button>
                         
-                        {showUserMenu === exam.id && (
+                        {showUserMenu === student.id && (
                           <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
                             <button
-                              onClick={() => handleEditExam(exam)}
+                              onClick={() => handleEditStudent(student)}
                               className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
                             >
                               <PencilIcon className="w-4 h-4 mr-2" />
@@ -569,7 +644,7 @@ const ExamsPage: React.FC = () => {
                               View Details
                             </button>
                             <button
-                              onClick={() => handleDeleteExam(exam)}
+                              onClick={() => handleDeleteStudent(student)}
                               className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
                             >
                               <TrashIcon className="w-4 h-4 mr-2" />
@@ -586,24 +661,17 @@ const ExamsPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="hidden lg:block bg-white rounded-2xl shadow-soft border border-surface-200 p-12 text-center">
-          <h3 className="text-lg font-medium text-surface-900 mb-2">No exams found</h3>
-          <p className="text-surface-600 mb-6">
-            {exams?.data ? 'No exams match your search criteria.' : 'Start by adding your first exam.'}
+        <div className="text-center py-12">
+          <h3 className="text-lg font-semibold text-surface-900 mb-2">No students found</h3>
+          <p className="text-surface-600">
+            {students?.data ? 'No students match your search criteria.' : 'Start by adding your first student.'}
           </p>
-          <button
-            onClick={handleAddExam}
-            className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors duration-200"
-          >
-            <PlusIcon className="w-4 h-4 mr-2" />
-            Add Exam
-          </button>
         </div>
       )}
 
-      {/* Exams Cards - Mobile */}
+      {/* Students Cards - Mobile */}
       <div className="lg:hidden space-y-4">
-        {isExamsLoading ? (
+        {isStudentsLoading ? (
           // Mobile skeleton loader
           Array.from({ length: 5 }).map((_, index) => (
             <div key={index} className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200 animate-pulse">
@@ -642,86 +710,88 @@ const ExamsPage: React.FC = () => {
             </div>
           ))
         ) : (
-          filteredExams.map((exam: Exam) => (
-            <div key={exam.id} className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center mr-3">
-                        <span className="text-sm font-medium text-brand-800">
-                          {exam.title[0]}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-semibold text-surface-900">
-                        {exam.title}
-                      </h3>
+          filteredStudents.map((student: Student) => (
+          <div key={student.id} className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center mr-3">
+                      <span className="text-sm font-medium text-brand-800">
+                        {student.user.first_name[0]}
+                      </span>
                     </div>
-                    {getStatusBadge(exam.status || 'upcoming')}
+                    <h3 className="text-lg font-semibold text-surface-900">
+                      {student.user.first_name} {student.user.last_name}
+                    </h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-surface-500">Subject</p>
-                                             <p className="text-surface-900">{(exam as any).subject || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-surface-500">Exam Date</p>
-                      <p className="text-surface-900">{exam.exam_date || 'Not set'}</p>
-                    </div>
-                    {visibleColumns.slice(0, 2).map(col => (
-                      <div key={col.field_name}>
-                        <p className="text-surface-500">{col.label}</p>
-                        <p className="text-surface-900">
-                          {(() => {
-                            let value;
-                            if (exam.dynamic_data && exam.dynamic_data[col.field_name] !== undefined) {
-                              value = exam.dynamic_data[col.field_name];
-                            } else if ((exam as any)[col.field_name] !== undefined) {
-                            value = (exam as any)[col.field_name];
-                            } else {
+                  {getStatusBadge(student.is_active)}
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-surface-500">Email</p>
+                    <p className="text-surface-900">{student.user.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-surface-500">Class</p>
+                    <p className="text-surface-900">{student.current_class?.name || 'N/A'}</p>
+                  </div>
+                  {visibleColumns.slice(0, 2).map(col => (
+                    <div key={col.field_name}>
+                      <p className="text-surface-500">{col.label}</p>
+                      <p className="text-surface-900">
+                        {(() => {
+                          let value;
+                          if (student.dynamic_data && student.dynamic_data[col.field_name] !== undefined) {
+                            value = student.dynamic_data[col.field_name];
+                          } else if ((student as any)[col.field_name] !== undefined) {
+                            value = (student as any)[col.field_name];
+                          } else if (student.user && (student.user as any)[col.field_name] !== undefined) {
+                            value = (student.user as any)[col.field_name];
+                          } else {
                             value = '-';
                           }
                           return String(value);
                         })()}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <button 
-                    className="p-2 text-surface-400 hover:text-surface-600 rounded-lg hover:bg-surface-100"
-                    onClick={() => setShowUserMenu(showUserMenu === exam.id ? null : exam.id)}
-                  >
-                    <EllipsisVerticalIcon className="w-5 h-5" />
-                  </button>
-                  
-                  {showUserMenu === exam.id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
-                      <button
-                        onClick={() => handleEditExam(exam)}
-                        className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
-                      >
-                        <PencilIcon className="w-4 h-4 mr-2" />
-                        Edit
-                      </button>
-                      <button className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200">
-                        <EyeIcon className="w-4 h-4 mr-2" />
-                        View Details
-                      </button>
-                      <button
-                        onClick={() => handleDeleteExam(exam)}
-                        className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
-                      >
-                        <TrashIcon className="w-4 h-4 mr-2" />
-                        Delete
-                      </button>
+                      </p>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
+              <div className="ml-4">
+                <button 
+                  className="p-2 text-surface-400 hover:text-surface-600 rounded-lg hover:bg-surface-100"
+                  onClick={() => setShowUserMenu(showUserMenu === student.id ? null : student.id)}
+                >
+                  <EllipsisVerticalIcon className="w-5 h-5" />
+                </button>
+                
+                {showUserMenu === student.id && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
+                    <button
+                      onClick={() => handleEditStudent(student)}
+                      className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
+                    >
+                      <PencilIcon className="w-4 h-4 mr-2" />
+                      Edit
+                    </button>
+                    <button className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200">
+                      <EyeIcon className="w-4 h-4 mr-2" />
+                      View Details
+                    </button>
+                    <button
+                      onClick={() => handleDeleteStudent(student)}
+                      className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
+                    >
+                      <TrashIcon className="w-4 h-4 mr-2" />
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          ))
+          </div>
+        ))
         )}
       </div>
 
@@ -730,20 +800,20 @@ const ExamsPage: React.FC = () => {
         <div className="flex items-center space-x-2">
           <button 
             className={`px-3 py-2 text-sm font-medium rounded-lg border ${
-              (exams as any)?.has_prev 
+              (students as any)?.has_prev 
                 ? 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50' 
                 : 'text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed'
             }`}
-            disabled={!(exams as any)?.has_prev}
+            disabled={!(students as any)?.has_prev}
             onClick={() => setPage(page - 1)}
           >
             Previous
           </button>
           
           {/* Page numbers */}
-          {Array.from({ length: Math.min(5, (exams as any)?.pages || 1) }, (_, i) => {
+          {Array.from({ length: Math.min(5, (students as any)?.pages || 1) }, (_, i) => {
             const pageNum = i + 1;
-            const isCurrentPage = pageNum === ((exams as any)?.page || 1);
+            const isCurrentPage = pageNum === ((students as any)?.page || 1);
             return (
               <button
                 key={pageNum}
@@ -761,11 +831,11 @@ const ExamsPage: React.FC = () => {
           
           <button 
             className={`px-3 py-2 text-sm font-medium rounded-lg border ${
-              (exams as any)?.has_next 
+              (students as any)?.has_next 
                 ? 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50' 
                 : 'text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed'
             }`}
-            disabled={!(exams as any)?.has_next}
+            disabled={!(students as any)?.has_next}
             onClick={() => setPage(page + 1)}
           >
             Next
@@ -773,16 +843,16 @@ const ExamsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Exam Form Dialog */}
+      {/* Student Form Dialog */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-surface-900">
-          {selectedExam
-            ? `Edit Exam - ${selectedExam.title}`
-            : 'Add New Exam'
-          }
+                {selectedStudent 
+                  ? `Edit Student - ${selectedStudent.user.first_name} ${selectedStudent.user.last_name}`
+                  : 'Add New Student'
+                }
               </h3>
               <button
                 onClick={handleFormClose}
@@ -792,15 +862,15 @@ const ExamsPage: React.FC = () => {
               </button>
             </div>
             
-          {formSchema ? (
+            {formSchema ? (
               <TailwindFormRenderer
-              schema={formSchema}
-              onSubmit={handleFormSave}
-              initialData={selectedExam ? mapExamToFormData(selectedExam) : undefined}
-              onCancel={handleFormClose}
-                isEditMode={!!selectedExam}
-            />
-          ) : (
+                schema={formSchema}
+                onSubmit={handleFormSave}
+                initialData={selectedStudent ? mapStudentToFormData(selectedStudent) : undefined}
+                onCancel={handleFormClose}
+                isEditMode={!!selectedStudent}
+              />
+            ) : (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
               </div>
@@ -813,24 +883,23 @@ const ExamsPage: React.FC = () => {
       {isDeleteDialogOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-surface-900 mb-4">Delete Exam</h3>
+            <h3 className="text-lg font-semibold text-surface-900 mb-4">Delete Student</h3>
             <p className="text-surface-600 mb-6">
-              Are you sure you want to delete {examToDelete ? examToDelete.title : 'this exam'}? This action cannot be undone.
+              Are you sure you want to delete {studentToDelete ? `${studentToDelete.user.first_name} ${studentToDelete.user.last_name}` : 'this student'}? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={handleCancelDelete}
-                disabled={isDeletingExam}
-                className="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-surface-700 bg-surface-100 rounded-lg hover:bg-surface-200"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDelete}
-                disabled={isDeletingExam}
-                className="px-4 py-2 text-sm font-medium text-white bg-error-600 border border-transparent rounded-lg hover:bg-error-700 focus:outline-none focus:ring-2 focus:ring-error-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isDeletingStudent}
+                className="px-4 py-2 text-sm font-medium text-white bg-error-600 rounded-lg hover:bg-error-700 disabled:opacity-50"
               >
-                {isDeletingExam ? 'Deleting...' : 'Delete Exam'}
+                {isDeletingStudent ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
@@ -840,4 +909,4 @@ const ExamsPage: React.FC = () => {
   );
 };
 
-export default ExamsPage;
+export default TailwindStudentsPage;

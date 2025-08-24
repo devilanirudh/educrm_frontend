@@ -1,199 +1,138 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from 'react-query';
 import {
-  Box,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Chip,
-  Avatar,
-  CircularProgress,
-  Alert,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Grid,
-  TableRow,
-  TableCell,
-  Card,
-  CardContent,
-  CardActions,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
-} from '@mui/material';
-import {
-  Search as SearchIcon,
-  Add as AddIcon,
-  Clear as ClearIcon,
-  FilterList as FilterListIcon,
-  MoreVert as MoreVertIcon,
-  PushPin as PushPinIcon,
-  Description as FormIcon,
-  Create as CreateIcon,
-  List as ListIcon,
-  Edit as EditIcon,
-} from '@mui/icons-material';
+  MagnifyingGlassIcon,
+  PlusIcon,
+  FunnelIcon,
+  AdjustmentsHorizontalIcon,
+  EllipsisVerticalIcon,
+  PencilIcon,
+  EyeIcon,
+  TrashIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
 import { assignmentsService, Assignment } from '../../services/assignments';
-import AssignmentFilterDrawer from '../../components/assignments/AssignmentFilterDrawer';
-import FormRenderer from '../../components/form-builder/FormRenderer';
 import { useAssignments } from '../../hooks/useAssignments';
 import { useForm } from '../../hooks/useForm';
-import StyledCard from '../../components/common/StyledCard';
-import StyledTable from '../../components/common/StyledTable';
-
-// Generic Delete Confirmation Dialog for Assignments
-const AssignmentDeleteConfirmationDialog: React.FC<{
-  open: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  assignmentTitle: string;
-  isLoading?: boolean;
-}> = ({ open, onClose, onConfirm, assignmentTitle, isLoading = false }) => {
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle>
-        Confirm Assignment Deletion
-      </DialogTitle>
-      <DialogContent>
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          This action will deactivate the assignment. Students will no longer be able to submit this assignment, but existing submissions will be preserved.
-        </Alert>
-        <DialogContentText>
-          Are you sure you want to delete the assignment <strong>{assignmentTitle}</strong>?
-          This action cannot be undone.
-        </DialogContentText>
-      </DialogContent>
-      <DialogActions>
-        <Button
-          onClick={onClose}
-          disabled={isLoading}
-          color="inherit"
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={onConfirm}
-          disabled={isLoading}
-          color="error"
-          variant="contained"
-          autoFocus
-        >
-          {isLoading ? 'Deleting...' : 'Delete Assignment'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
+import TailwindFormRenderer from '../../components/form-builder/TailwindFormRenderer';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 
 const AssignmentsPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(0);
+  
+  // State variables
+  const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, any>>({});
-  const [isFilterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const [isFilterPinned, setFilterPinned] = useState(false);
-  const [isFormOpen, setFormOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [showUserMenu, setShowUserMenu] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [localAssignments, setLocalAssignments] = useState<any>(null);
-  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
+  const [showColumnsMenu, setShowColumnsMenu] = useState(false);
+  const [tableVisibleColumns, setTableVisibleColumns] = useState<string[]>([]);
+  
+  // Refs for click outside detection
+  const columnsMenuRef = useRef<HTMLDivElement>(null);
 
-  const { assignments, isAssignmentsLoading, assignmentsError, refetchAssignments, createAssignment, updateAssignment, deleteAssignment, isDeletingAssignment } = useAssignments({
+  // Hooks
+  const { 
+    assignments, 
+    isAssignmentsLoading, 
+    assignmentsError, 
+    refetchAssignments, 
+    createAssignment, 
+    updateAssignment, 
+    deleteAssignment, 
+    isDeletingAssignment 
+  } = useAssignments({
     page,
     per_page: rowsPerPage,
     search: searchTerm || undefined,
     ...filters,
   });
 
-  const { formSchema, isFormSchemaLoading, formSchemaError, isFormSchemaError } = useForm('assignment_form');
+  const { formSchema, isFormSchemaLoading, formSchemaError } = useForm('assignment_form');
 
-  const [tableVisibleColumns, setTableVisibleColumns] = useState<string[]>(['assignment', 'class', 'subject', 'due_date', 'max_score', 'is_published', 'status', 'actions']);
-
+  // Visible columns configuration
   const visibleColumns = useMemo(() => {
     if (formSchema?.fields) {
       return formSchema.fields.filter(field => field.is_visible_in_listing);
     }
     // Default columns if form schema is not available
     return [
+      { field_name: 'title', label: 'Title', is_visible_in_listing: true },
       { field_name: 'due_date', label: 'Due Date', is_visible_in_listing: true },
-      { field_name: 'max_score', label: 'Max Score', is_visible_in_listing: true },
-      { field_name: 'is_published', label: 'Published', is_visible_in_listing: true },
+      { field_name: 'subject', label: 'Subject', is_visible_in_listing: true },
     ];
   }, [formSchema]);
 
-  // Initialize table visible columns when form schema changes (only on first load)
-  React.useEffect(() => {
+  // Initialize table visible columns
+  useEffect(() => {
     if (visibleColumns.length > 0 && tableVisibleColumns.length === 0) {
-      const allColumnIds = ['assignment', ...visibleColumns.map(col => col.field_name), 'status', 'actions'];
-      setTableVisibleColumns(allColumnIds);
+      const defaultColumns = visibleColumns.slice(0, 4).map(col => col.field_name);
+      setTableVisibleColumns(defaultColumns);
     }
   }, [visibleColumns, tableVisibleColumns.length]);
 
   // Set local state when React Query data is available
-  React.useEffect(() => {
+  useEffect(() => {
     if (assignments && !localAssignments) {
       setLocalAssignments(assignments);
-      console.log('Setting local assignments from React Query:', assignments);
     }
   }, [assignments, localAssignments]);
 
-  const columns = useMemo(() => [
-    { id: 'assignment', label: 'Assignment', minWidth: 250 },
-    ...visibleColumns.map(col => ({ id: col.field_name, label: col.label, minWidth: 180 })),
-    { id: 'status', label: 'Status', minWidth: 120 },
-    { id: 'actions', label: 'Actions', align: 'right' as const, minWidth: 120 },
-  ], [visibleColumns]);
+  // Click outside detection for columns menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (columnsMenuRef.current && !columnsMenuRef.current.contains(event.target as Node)) {
+        setShowColumnsMenu(false);
+      }
+    };
 
-  const handlePageChange = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+  // Filter assignments based on search term
+  const filteredAssignments = useMemo(() => {
+    if (!searchTerm) {
+      return localAssignments?.assignments || assignments?.data || [];
+    }
+    
+    const assignmentsData = localAssignments?.assignments || assignments?.data || [];
+    return assignmentsData.filter((assignment: Assignment) =>
+      assignment.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm, localAssignments, assignments]);
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-    setPage(0);
-  };
-
+  // Event handlers
   const handleAddAssignment = () => {
     setSelectedAssignment(null);
-    setFormOpen(true);
+    setIsFormOpen(true);
   };
 
   const handleEditAssignment = (assignment: Assignment) => {
-    console.log('🔍 handleEditAssignment called with assignment:', assignment);
-    const mappedData = mapAssignmentToFormData(assignment);
-    console.log('🔍 Mapped data for form:', mappedData);
     setSelectedAssignment(assignment);
-    setFormOpen(true);
-    handleMenuClose();
+    setIsFormOpen(true);
+    setShowUserMenu(null);
+  };
+
+  const handleDeleteAssignment = (assignment: Assignment) => {
+    setAssignmentToDelete(assignment);
+    setIsDeleteDialogOpen(true);
+    setShowUserMenu(null);
   };
 
   const handleFormClose = () => {
-    setFormOpen(false);
+    setIsFormOpen(false);
     setSelectedAssignment(null);
   };
 
@@ -203,13 +142,9 @@ const AssignmentsPage: React.FC = () => {
         updateAssignment({ id: selectedAssignment.id, data });
         setSuccessMessage('Assignment updated successfully!');
       } else {
-        // Use the dynamic form endpoint for new assignments
         const result = await assignmentsService.createAssignmentFromDynamicForm(data);
-        // Invalidate the assignments query to refresh the list
         queryClient.invalidateQueries('assignments');
-        // Also refetch the data immediately
         queryClient.refetchQueries('assignments');
-        // Update local state as fallback
         if (localAssignments) {
           setLocalAssignments({
             ...localAssignments,
@@ -220,32 +155,10 @@ const AssignmentsPage: React.FC = () => {
         setSuccessMessage('Assignment created successfully!');
       }
       handleFormClose();
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to save assignment');
     }
-  };
-
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, assignment: Assignment) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedAssignment(assignment);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedAssignment(null);
-  };
-
-  const handleEditForm = () => {
-    // Navigate to advanced form builder
-    navigate('/form-builder/advanced?type=assignment');
-  };
-
-  const handleDeleteAssignment = (assignment: Assignment) => {
-    setAssignmentToDelete(assignment);
-    setDeleteDialogOpen(true);
-    handleMenuClose();
   };
 
   const handleConfirmDelete = async () => {
@@ -255,7 +168,6 @@ const AssignmentsPage: React.FC = () => {
       setError(null);
       await deleteAssignment(assignmentToDelete.id);
 
-      // Update local state immediately for better UX
       if (localAssignments?.assignments) {
         const updatedAssignments = localAssignments.assignments.filter((a: Assignment) => a.id !== assignmentToDelete.id);
         setLocalAssignments({
@@ -265,21 +177,20 @@ const AssignmentsPage: React.FC = () => {
         });
       }
 
-      setSuccessMessage(`Assignment "${assignmentToDelete.title}" has been successfully deactivated.`);
-      setDeleteDialogOpen(false);
+      setSuccessMessage(`Assignment ${assignmentToDelete.title} has been successfully deleted.`);
+      setIsDeleteDialogOpen(false);
       setAssignmentToDelete(null);
 
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to delete assignment');
-      setDeleteDialogOpen(false);
+      setIsDeleteDialogOpen(false);
       setAssignmentToDelete(null);
     }
   };
 
   const handleCancelDelete = () => {
-    setDeleteDialogOpen(false);
+    setIsDeleteDialogOpen(false);
     setAssignmentToDelete(null);
   };
 
@@ -289,22 +200,16 @@ const AssignmentsPage: React.FC = () => {
 
     const formData: Record<string, any> = {};
 
-    // Map form fields to assignment data
     formSchema.fields.forEach(field => {
       let value: any = undefined;
 
-      // First check dynamic_data (custom form fields)
       if (assignment.dynamic_data && assignment.dynamic_data[field.field_name] !== undefined) {
         value = assignment.dynamic_data[field.field_name];
-      }
-      // Then check direct assignment properties
-      else if ((assignment as any)[field.field_name] !== undefined) {
+      } else if ((assignment as any)[field.field_name] !== undefined) {
         value = (assignment as any)[field.field_name];
       }
 
-      // Only add the value if it's not undefined
       if (value !== undefined) {
-        // Format date values for HTML date input (YYYY-MM-DD)
         if (field.field_type === 'date' && value) {
           const date = new Date(value);
           if (!isNaN(date.getTime())) {
@@ -318,301 +223,620 @@ const AssignmentsPage: React.FC = () => {
       }
     });
 
-    console.log('🔍 Mapping assignment to form data:', {
-      assignment,
-      formSchema: formSchema.fields.map(f => f.field_name),
-      mappedData: formData
-    });
-
     return formData;
   };
 
-  // Show form not found error with option to create new form
-  if (isFormSchemaError && !isFormSchemaLoading) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error" sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Assignment Form Not Found
-          </Typography>
-          <Typography variant="body2" gutterBottom>
-            The default assignment form could not be loaded. This might be because:
-          </Typography>
-          <Box component="ul" sx={{ pl: 2, mb: 2 }}>
-            <Typography component="li" variant="body2">
-              The form hasn't been created yet
-            </Typography>
-            <Typography component="li" variant="body2">
-              There's a connection issue with the server
-            </Typography>
-          </Box>
-        </Alert>
+  // Status badge component
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      'pending': { bg: 'bg-warning-100', text: 'text-warning-800', label: 'Pending' },
+      'submitted': { bg: 'bg-success-100', text: 'text-success-800', label: 'Submitted' },
+      'overdue': { bg: 'bg-error-100', text: 'text-error-800', label: 'Overdue' },
+      'graded': { bg: 'bg-info-100', text: 'text-info-800', label: 'Graded' },
+    };
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Card
-              sx={{
-                cursor: 'pointer',
-                '&:hover': {
-                  boxShadow: 3,
-                  backgroundColor: 'action.hover'
-                }
-              }}
-              onClick={handleEditForm}
-            >
-              <CardContent>
-                <Box display="flex" alignItems="center" gap={2}>
-                  <EditIcon color="primary" />
-                  <Box>
-                    <Typography variant="h6">Edit Form Schema</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Access the advanced form builder to modify the assignment form
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </Box>
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+        {config.label}
+      </span>
+    );
+  };
+
+  // Subjects for filter
+  const subjects = ['Mathematics', 'Science', 'English', 'History', 'Computer Science', 'Physical Education', 'Art', 'Music'];
+
+  // Show form not found error with option to create new form
+  if (formSchemaError && !isFormSchemaLoading) {
+    return (
+      <div className="p-6">
+        <div className="bg-error-50 border border-error-200 rounded-2xl p-6">
+          <h2 className="text-xl font-bold text-error-900 mb-2">Assignment Form Not Found</h2>
+          <p className="text-error-700 mb-4">
+            The default assignment form could not be loaded. This might be because the form hasn't been created yet
+            or there's a connection issue with the server.
+          </p>
+          <button
+            onClick={() => navigate('/form-builder/advanced?type=assignment')}
+            className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors duration-200"
+          >
+            <PencilIcon className="w-4 h-4 mr-2" />
+            Edit Form Schema
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3, height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">
-          Assignments
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={handleEditForm}
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900">Assignments</h1>
+          <p className="mt-1 text-sm text-surface-600">
+            Manage homework assignments, projects, and academic tasks.
+          </p>
+        </div>
+        <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-3">
+          <div className="relative" ref={columnsMenuRef}>
+            <button 
+              className="inline-flex items-center px-4 py-2 bg-surface-100 text-surface-700 text-sm font-medium rounded-xl hover:bg-surface-200 transition-colors duration-200"
+              onClick={() => setShowColumnsMenu(!showColumnsMenu)}
+            >
+              <AdjustmentsHorizontalIcon className="w-4 h-4 mr-2" />
+              Columns
+            </button>
+            
+            {/* Column visibility menu */}
+            {showColumnsMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
+                <div className="px-4 py-2 border-b border-surface-200">
+                  <p className="text-sm font-medium text-surface-900">Visible Columns</p>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {/* Base columns that are always visible */}
+                  <div className="px-4 py-2">
+                    <label className="flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={true}
+                        disabled={true}
+                        className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2 opacity-50"
+                      />
+                      <span className="text-sm text-surface-700">Assignment</span>
+                    </label>
+                  </div>
+                  
+                  {/* Dynamic columns */}
+                  {visibleColumns.map((col) => (
+                    <div key={col.field_name} className="px-4 py-2">
+                      <label className="flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={tableVisibleColumns.includes(col.field_name)}
+                          onChange={() => {
+                            const newColumns = tableVisibleColumns.includes(col.field_name)
+                              ? tableVisibleColumns.filter(id => id !== col.field_name)
+                              : [...tableVisibleColumns, col.field_name];
+                            setTableVisibleColumns(newColumns);
+                          }}
+                          className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2"
+                        />
+                        <span className="text-sm text-surface-700">{col.label}</span>
+                      </label>
+                    </div>
+                  ))}
+                  
+                  {/* Status and Actions are always visible */}
+                  <div className="px-4 py-2">
+                    <label className="flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={true}
+                        disabled={true}
+                        className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2 opacity-50"
+                      />
+                      <span className="text-sm text-surface-700">Status</span>
+                    </label>
+                  </div>
+                  <div className="px-4 py-2">
+                    <label className="flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={true}
+                        disabled={true}
+                        className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2 opacity-50"
+                      />
+                      <span className="text-sm text-surface-700">Actions</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => navigate('/form-builder/advanced?type=assignment')}
+            className="inline-flex items-center px-4 py-2 bg-surface-100 text-surface-700 text-sm font-medium rounded-xl hover:bg-surface-200 transition-colors duration-200"
           >
+            <PencilIcon className="w-4 h-4 mr-2" />
             Edit Form
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
+          </button>
+          <button
             onClick={handleAddAssignment}
             disabled={isFormSchemaLoading}
+            className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            <PlusIcon className="w-4 h-4 mr-2" />
             Add Assignment
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Search and Filters */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexShrink: 0 }}>
-        <TextField
-          placeholder="Search assignments..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-            endAdornment: searchTerm && (
-              <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setSearchTerm('')}>
-                  <ClearIcon />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-          sx={{ minWidth: 300 }}
-        />
-        <IconButton
-          onClick={() => setFilterDrawerOpen(true)}
-          color={isFilterPinned ? 'primary' : 'default'}
-        >
-          <FilterListIcon />
-        </IconButton>
-      </Box>
+          </button>
+        </div>
+      </div>
 
       {/* Error Alert */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <div className="bg-error-50 border border-error-200 rounded-2xl p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-error-700">{error}</p>
+            <button 
+              onClick={() => setError(null)}
+              className="text-error-500 hover:text-error-700"
+            >
+              <XMarkIcon className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Success Alert */}
       {successMessage && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMessage(null)}>
-          {successMessage}
-        </Alert>
+        <div className="bg-success-50 border border-success-200 rounded-2xl p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-success-700">{successMessage}</p>
+            <button 
+              onClick={() => setSuccessMessage(null)}
+              className="text-success-500 hover:text-success-700"
+            >
+              <XMarkIcon className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* Assignments Table */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      {/* Search and Filters */}
+      <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          {/* Search */}
+          <div className="relative flex-1 max-w-md">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-surface-400" />
+            <input
+              type="text"
+              placeholder="Search assignments..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Filter Toggle */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="inline-flex items-center px-4 py-2 bg-surface-100 text-surface-700 text-sm font-medium rounded-xl hover:bg-surface-200 transition-colors duration-200"
+            >
+              <FunnelIcon className="w-4 h-4 mr-2" />
+              Filters
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="mt-6 pt-6 border-t border-surface-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-2">Status</label>
+                <select
+                  className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="submitted">Submitted</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="graded">Graded</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-2">Subject</label>
+                <select
+                  className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                >
+                  <option value="all">All Subjects</option>
+                  {subjects.map((subject) => (
+                    <option key={subject} value={subject}>{subject}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Results Summary */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-surface-600">
+          Showing {filteredAssignments.length} of {(localAssignments?.total || (assignments as any)?.total || assignments?.total || 0)} assignments
+        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-surface-600">View:</span>
+          <select className="text-sm border border-surface-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option>10 per page</option>
+            <option>25 per page</option>
+            <option>50 per page</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Assignments Table - Desktop */}
         {isAssignmentsLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-        <>
-          {(() => {
-            const hasAssignmentsData = assignments?.data && assignments.data.length > 0;
-            const hasLocalAssignmentsData = localAssignments?.assignments && localAssignments.assignments.length > 0;
-            const hasAnyData = hasAssignmentsData || hasLocalAssignmentsData;
-
-            console.log('Debug data check:', {
-              hasAssignmentsData,
-              hasLocalAssignmentsData,
-              hasAnyData,
-              assignmentsDataLength: assignments?.data?.length,
-              localAssignmentsDataLength: localAssignments?.assignments?.length,
-              assignmentsData: assignments?.data,
-              localAssignmentsData: localAssignments?.assignments
-            });
-
-            return hasAnyData;
-          })() ? (
-            <StyledTable
-              columns={columns}
-              data={localAssignments?.assignments || assignments?.data || []}
-              page={page}
-              rowsPerPage={rowsPerPage}
-              total={localAssignments?.total || assignments?.total || 0}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-              externalVisibleColumns={tableVisibleColumns}
-              onVisibleColumnsChange={setTableVisibleColumns}
-              maxHeight="100%"
-              renderRow={(assignment: Assignment, visibleColumnIds: string[]) => (
-                <TableRow key={assignment.id} hover sx={{ height: '48px' }}>
-                  <TableCell sx={{ height: '48px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: 250, minWidth: 250 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-                        {assignment.title[0]}
-                      </Avatar>
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography variant="body2" fontWeight={500} sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {assignment.title}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {assignment.description || 'No description'}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </TableCell>
+        <SkeletonLoader rows={8} />
+      ) : filteredAssignments.length > 0 ? (
+        <div className="hidden lg:block bg-white rounded-2xl shadow-soft border border-surface-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-surface-200">
+              <thead className="bg-surface-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-surface-500 uppercase tracking-wider">
+                    Assignment
+                  </th>
                   {visibleColumns
-                    .filter(col => visibleColumnIds.length === 0 || visibleColumnIds.includes(col.field_name))
+                    .filter(col => tableVisibleColumns.includes(col.field_name))
                     .map(col => (
-                      <TableCell key={col.field_name} sx={{ height: '48px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: 180, minWidth: 180 }}>
+                      <th key={col.field_name} className="px-6 py-3 text-left text-xs font-medium text-surface-500 uppercase tracking-wider">
+                        {col.label}
+                      </th>
+                    ))}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-surface-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-surface-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-surface-200">
+                {filteredAssignments.map((assignment: Assignment) => (
+                  <tr key={assignment.id} className="hover:bg-surface-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8">
+                          <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center">
+                            <span className="text-sm font-medium text-brand-800">
+                              {assignment.title[0]}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-surface-900">
+                            {assignment.title}
+                          </div>
+                                                     <div className="text-sm text-surface-500">{typeof assignment.subject === 'string' ? assignment.subject : assignment.subject?.name || 'N/A'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    {visibleColumns
+                      .filter(col => tableVisibleColumns.includes(col.field_name))
+                      .map(col => (
+                        <td key={col.field_name} className="px-6 py-4 whitespace-nowrap text-sm text-surface-900">
                         {(() => {
                           let value;
-                          // First check dynamic_data
                           if (assignment.dynamic_data && assignment.dynamic_data[col.field_name] !== undefined) {
                             value = assignment.dynamic_data[col.field_name];
-                          }
-                          // Then check direct assignment properties
-                          else if ((assignment as any)[col.field_name] !== undefined) {
+                            } else if ((assignment as any)[col.field_name] !== undefined) {
+                              value = (assignment as any)[col.field_name];
+                            } else {
+                              value = '-';
+                            }
+                            return String(value);
+                          })()}
+                        </td>
+                      ))}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(assignment.status || 'pending')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="relative">
+                        <button 
+                          className="text-surface-400 hover:text-surface-600"
+                          onClick={() => setShowUserMenu(showUserMenu === assignment.id ? null : assignment.id)}
+                        >
+                          <EllipsisVerticalIcon className="w-4 h-4" />
+                        </button>
+                        
+                        {showUserMenu === assignment.id && (
+                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
+                            <button
+                              onClick={() => handleEditAssignment(assignment)}
+                              className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
+                            >
+                              <PencilIcon className="w-4 h-4 mr-2" />
+                              Edit
+                            </button>
+                            <button className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200">
+                              <EyeIcon className="w-4 h-4 mr-2" />
+                              View Details
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAssignment(assignment)}
+                              className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
+                            >
+                              <TrashIcon className="w-4 h-4 mr-2" />
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="hidden lg:block bg-white rounded-2xl shadow-soft border border-surface-200 p-12 text-center">
+          <h3 className="text-lg font-medium text-surface-900 mb-2">No assignments found</h3>
+          <p className="text-surface-600 mb-6">
+            {assignments?.data ? 'No assignments match your search criteria.' : 'Start by adding your first assignment.'}
+          </p>
+          <button
+            onClick={handleAddAssignment}
+            className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors duration-200"
+          >
+            <PlusIcon className="w-4 h-4 mr-2" />
+            Add Assignment
+          </button>
+        </div>
+      )}
+
+      {/* Assignments Cards - Mobile */}
+      <div className="lg:hidden space-y-4">
+        {isAssignmentsLoading ? (
+          // Mobile skeleton loader
+          Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200 animate-pulse">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center">
+                      <div className="h-8 w-8 rounded-full bg-surface-200 mr-3"></div>
+                      <div className="h-6 w-32 bg-surface-200 rounded"></div>
+                    </div>
+                    <div className="h-6 w-16 bg-surface-200 rounded"></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="h-4 w-12 bg-surface-200 rounded mb-1"></div>
+                      <div className="h-4 w-24 bg-surface-200 rounded"></div>
+                    </div>
+                    <div>
+                      <div className="h-4 w-12 bg-surface-200 rounded mb-1"></div>
+                      <div className="h-4 w-20 bg-surface-200 rounded"></div>
+                    </div>
+                    <div>
+                      <div className="h-4 w-16 bg-surface-200 rounded mb-1"></div>
+                      <div className="h-4 w-28 bg-surface-200 rounded"></div>
+                    </div>
+                    <div>
+                      <div className="h-4 w-20 bg-surface-200 rounded mb-1"></div>
+                      <div className="h-4 w-16 bg-surface-200 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <div className="h-8 w-8 bg-surface-200 rounded"></div>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          filteredAssignments.map((assignment: Assignment) => (
+            <div key={assignment.id} className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center">
+                      <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center mr-3">
+                        <span className="text-sm font-medium text-brand-800">
+                          {assignment.title[0]}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-surface-900">
+                        {assignment.title}
+                      </h3>
+                    </div>
+                    {getStatusBadge(assignment.status || 'pending')}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-surface-500">Subject</p>
+                                             <p className="text-surface-900">{typeof assignment.subject === 'string' ? assignment.subject : assignment.subject?.name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-surface-500">Due Date</p>
+                      <p className="text-surface-900">{assignment.due_date || 'Not set'}</p>
+                    </div>
+                    {visibleColumns.slice(0, 2).map(col => (
+                      <div key={col.field_name}>
+                        <p className="text-surface-500">{col.label}</p>
+                        <p className="text-surface-900">
+                          {(() => {
+                            let value;
+                            if (assignment.dynamic_data && assignment.dynamic_data[col.field_name] !== undefined) {
+                              value = assignment.dynamic_data[col.field_name];
+                            } else if ((assignment as any)[col.field_name] !== undefined) {
                             value = (assignment as any)[col.field_name];
-                          }
-                          else {
+                            } else {
                             value = '-';
                           }
-
-                          // Convert to string to avoid React warnings
                           return String(value);
                         })()}
-                      </TableCell>
+                        </p>
+                      </div>
                     ))}
-                  <TableCell sx={{ height: '48px', width: 120, minWidth: 120 }}>
-                    <Chip
-                      label={assignment.is_published ? 'Published' : 'Draft'}
-                      color={assignment.is_published ? 'success' : 'warning'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell align="right" sx={{ height: '48px', width: 120, minWidth: 120 }}>
-                    <IconButton
-                      onClick={(e) => handleMenuClick(e, assignment)}
-                      size="small"
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              )}
-            />
-          ) : (
-            <Box sx={{ textAlign: 'center', p: 4 }}>
-              <Typography variant="h6" color="text.secondary">
-                No assignments found
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                {assignments?.data ? 'No assignments match your search criteria.' : 'Start by adding your first assignment.'}
-              </Typography>
-            </Box>
-          )}
-        </>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <button 
+                    className="p-2 text-surface-400 hover:text-surface-600 rounded-lg hover:bg-surface-100"
+                    onClick={() => setShowUserMenu(showUserMenu === assignment.id ? null : assignment.id)}
+                  >
+                    <EllipsisVerticalIcon className="w-5 h-5" />
+                  </button>
+                  
+                  {showUserMenu === assignment.id && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
+                      <button
+                        onClick={() => handleEditAssignment(assignment)}
+                        className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
+                      >
+                        <PencilIcon className="w-4 h-4 mr-2" />
+                        Edit
+                      </button>
+                      <button className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200">
+                        <EyeIcon className="w-4 h-4 mr-2" />
+                        View Details
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAssignment(assignment)}
+                        className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
+                      >
+                        <TrashIcon className="w-4 h-4 mr-2" />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
         )}
-      </Box>
+      </div>
 
-      {/* Filter Drawer */}
-      <AssignmentFilterDrawer
-        open={isFilterDrawerOpen}
-        onClose={() => setFilterDrawerOpen(false)}
-        schema={formSchema?.fields.filter(f => f.is_filterable) || []}
-        onApply={setFilters}
-        pinned={isFilterPinned}
-      />
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <button 
+            className={`px-3 py-2 text-sm font-medium rounded-lg border ${
+              (assignments as any)?.has_prev 
+                ? 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50' 
+                : 'text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed'
+            }`}
+            disabled={!(assignments as any)?.has_prev}
+            onClick={() => setPage(page - 1)}
+          >
+            Previous
+          </button>
+          
+          {/* Page numbers */}
+          {Array.from({ length: Math.min(5, (assignments as any)?.pages || 1) }, (_, i) => {
+            const pageNum = i + 1;
+            const isCurrentPage = pageNum === ((assignments as any)?.page || 1);
+            return (
+              <button
+                key={pageNum}
+                className={`px-3 py-2 text-sm font-medium rounded-lg border ${
+                  isCurrentPage
+                    ? 'text-white bg-brand-600 border-brand-600'
+                    : 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50'
+                }`}
+                onClick={() => setPage(pageNum)}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+          
+          <button 
+            className={`px-3 py-2 text-sm font-medium rounded-lg border ${
+              (assignments as any)?.has_next 
+                ? 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50' 
+                : 'text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed'
+            }`}
+            disabled={!(assignments as any)?.has_next}
+            onClick={() => setPage(page + 1)}
+          >
+            Next
+          </button>
+        </div>
+      </div>
 
       {/* Assignment Form Dialog */}
-      <Dialog open={isFormOpen} onClose={handleFormClose} maxWidth="md" fullWidth>
-        <DialogTitle>
+      {isFormOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-surface-900">
           {selectedAssignment
             ? `Edit Assignment - ${selectedAssignment.title}`
             : 'Add New Assignment'
           }
-        </DialogTitle>
-        <DialogContent>
+              </h3>
+              <button
+                onClick={handleFormClose}
+                className="text-surface-400 hover:text-surface-600"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            
           {formSchema ? (
-            <FormRenderer
+              <TailwindFormRenderer
               schema={formSchema}
               onSubmit={handleFormSave}
               initialData={selectedAssignment ? mapAssignmentToFormData(selectedAssignment) : undefined}
               onCancel={handleFormClose}
+                isEditMode={!!selectedAssignment}
             />
           ) : (
-            <CircularProgress />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={() => handleEditAssignment(selectedAssignment!)}>
-          Edit
-        </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
-          View Details
-        </MenuItem>
-        <MenuItem onClick={() => handleDeleteAssignment(selectedAssignment!)}>
-          Delete
-        </MenuItem>
-      </Menu>
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
-      <AssignmentDeleteConfirmationDialog
-        open={isDeleteDialogOpen}
-        onClose={handleCancelDelete}
-        onConfirm={handleConfirmDelete}
-        assignmentTitle={assignmentToDelete ? assignmentToDelete.title : ''}
-        isLoading={isDeletingAssignment}
-      />
-    </Box>
+      {isDeleteDialogOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-surface-900 mb-4">Delete Assignment</h3>
+            <p className="text-surface-600 mb-6">
+              Are you sure you want to delete {assignmentToDelete ? assignmentToDelete.title : 'this assignment'}? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleCancelDelete}
+                disabled={isDeletingAssignment}
+                className="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeletingAssignment}
+                className="px-4 py-2 text-sm font-medium text-white bg-error-600 border border-transparent rounded-lg hover:bg-error-700 focus:outline-none focus:ring-2 focus:ring-error-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeletingAssignment ? 'Deleting...' : 'Delete Assignment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

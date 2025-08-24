@@ -54,10 +54,19 @@ export const authService = {
     return response.data;
   },
 
-  // Logout user
+  // Logout user (Firebase)
   logout: async (): Promise<void> => {
-    const response = await api.post('/auth/logout');
-    return response.data;
+    try {
+      // For Firebase, we don't need to call a backend logout endpoint
+      // The frontend will handle the logout by clearing the Redux state
+      // and Firebase will handle the token invalidation
+      console.log('🔐 Firebase logout - clearing local state');
+      return Promise.resolve();
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+      // Even if there's an error, we should still clear local state
+      return Promise.resolve();
+    }
   },
 
   // Refresh access token
@@ -96,9 +105,33 @@ export const authService = {
     return response.data;
   },
 
-  // Verify email
-  verifyEmail: async (token: string): Promise<void> => {
-    const response = await api.post('/auth/verify-email', { token });
+  // Firebase Authentication
+  verifyFirebaseToken: async (tokenData: { idToken: string }): Promise<any> => {
+    const response = await api.post('/firebase-auth/verify-token', tokenData);
+    return response.data;
+  },
+
+  // Get current user from Firebase auth
+  getCurrentFirebaseUser: async (): Promise<any> => {
+    const response = await api.get('/firebase-auth/me');
+    return response.data;
+  },
+
+  // Update user role (admin only)
+  updateUserRole: async (userId: number, role: string): Promise<any> => {
+    const response = await api.put(`/firebase-auth/users/${userId}/role`, { role });
+    return response.data;
+  },
+
+  // Get Firebase role for user (admin only)
+  getFirebaseUserRole: async (userId: number): Promise<any> => {
+    const response = await api.get(`/firebase-auth/users/${userId}/firebase-role`);
+    return response.data;
+  },
+
+  // Sync Firebase roles (admin only)
+  syncFirebaseRoles: async (): Promise<any> => {
+    const response = await api.post('/firebase-auth/sync-firebase-roles');
     return response.data;
   },
 

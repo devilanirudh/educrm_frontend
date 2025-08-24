@@ -18,10 +18,10 @@ export const useStudents = (params?: StudentFilters) => {
       onSuccess: (data) => {
         console.log('Successfully fetched students:', data);
       },
-      refetchOnMount: true,
+      refetchOnMount: false, // Don't refetch on mount if data is fresh
       refetchOnWindowFocus: false,
-      staleTime: 0, // Always fetch fresh data
-      cacheTime: 0, // Don't cache
+      staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
+      cacheTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
       retry: 1,
       retryDelay: 1000,
     }

@@ -12,7 +12,13 @@ export const useClasses = (params?: ClassFilters) => {
     refetch: refetchClasses
   } = useQuery<PaginatedResponse<Class>>(
     ['classes', params],
-    () => classesService.getClasses(params)
+    () => classesService.getClasses(params),
+    {
+      refetchOnMount: false, // Don't refetch if data is fresh
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
+      cacheTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    }
   );
 
   const { mutate: createClass, isLoading: isCreatingClass } = useMutation(

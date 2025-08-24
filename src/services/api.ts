@@ -1,8 +1,19 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { QueryParams } from '../types/api';
 
+// Dynamic base URL based on environment
+const getBaseURL = (): string => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const baseURL = isDevelopment 
+    ? 'http://localhost:8000/api/v1'
+    : 'https://educrmbackend-production.up.railway.app/api/v1';
+  
+  console.log(`🌐 API Base URL: ${baseURL} (${isDevelopment ? 'Development' : 'Production'})`);
+  return baseURL;
+};
+
 const api: AxiosInstance = axios.create({
-  baseURL: 'https://educrmbackend-production.up.railway.app/api/v1',
+  baseURL: getBaseURL(),
   timeout: 10000,
 });
 
