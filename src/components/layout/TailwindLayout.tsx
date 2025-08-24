@@ -180,11 +180,13 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
             <div className="flex items-center justify-between h-16 px-4 border-b border-surface-200">
               <div className="flex items-center space-x-3">
                 {/* Education Icon */}
-                <div className="flex-shrink-0">
-                  <svg className="w-8 h-8 text-brand-600" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 3L1 9l11 6l9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82Z"/>
-                  </svg>
-                </div>
+                {!sidebarCollapsed && (
+                  <div className="flex-shrink-0">
+                    <svg className="w-8 h-8 text-brand-600" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 3L1 9l11 6l9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82Z"/>
+                    </svg>
+                  </div>
+                )}
                 {!sidebarCollapsed && (
                   <h1 className="text-xl font-bold text-brand-600">EduSphere</h1>
                 )}
