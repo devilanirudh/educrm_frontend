@@ -11,7 +11,17 @@ const TeacherDashboard: React.FC = () => (
       Welcome to the teacher dashboard.
     </Typography>
     <Grid container spacing={3} sx={{ mt: 2 }}>
-      <Grid item xs={12}>
+      <Grid item xs={12} md={6}>
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            My Assignments
+          </Typography>
+          <Link component={RouterLink} to="/assignments">
+            View Assignments
+          </Link>
+        </Paper>
+      </Grid>
+      <Grid item xs={12} md={6}>
         <Paper sx={{ p: 2 }}>
           <Typography variant="h6" gutterBottom>
             Fees Summary

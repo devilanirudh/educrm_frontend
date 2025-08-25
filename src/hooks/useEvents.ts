@@ -1,17 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { eventsService } from '../services/events';
-import { Event } from '../types/events';
+import { eventsService, Event, EventCreateRequest } from '../services/events';
 
 export const useEvents = () => {
   const queryClient = useQueryClient();
 
   const { data: events, isLoading: isEventsLoading } = useQuery<Event[]>(
     'events',
-    eventsService.getEvents
+    () => eventsService.getEvents()
   );
 
   const { mutate: createEvent, isLoading: isCreatingEvent } = useMutation(
-    (data: Omit<Event, 'id'>) => eventsService.createEvent(data),
+    (data: EventCreateRequest) => eventsService.createEvent(data),
     {
       onSuccess: () => {
         queryClient.invalidateQueries('events');
@@ -20,7 +19,7 @@ export const useEvents = () => {
   );
 
   const { mutate: updateEvent, isLoading: isUpdatingEvent } = useMutation(
-    ({ id, data }: { id: number; data: Partial<Omit<Event, 'id'>> }) => eventsService.updateEvent(id, data),
+    ({ id, data }: { id: number; data: EventCreateRequest }) => eventsService.updateEvent(id, data),
     {
       onSuccess: () => {
         queryClient.invalidateQueries('events');

@@ -1,79 +1,60 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from 'react-query';
 import { 
   UsersIcon, 
   AcademicCapIcon, 
   BookOpenIcon, 
   ChartBarIcon,
-  CurrencyDollarIcon,
-  ExclamationTriangleIcon,
-  ClockIcon,
   ArrowUpIcon,
   ArrowDownIcon,
-  EyeIcon
+  EyeIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
+  BellIcon
 } from '@heroicons/react/24/outline';
-import api from '../../services/api';
+import { useAdminDashboard } from '../../hooks/useDashboard';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const TailwindAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
 
-  // Fetch dashboard data
-  const { data: dashboardData, isLoading, error } = useQuery(
-    'adminDashboard',
-    async () => {
-      // We'll implement these API calls later
-      const [studentsRes, teachersRes, classesRes] = await Promise.all([
-        api.get('/students?page=1&per_page=1'), // Just to get total count
-        api.get('/teachers?page=1&per_page=1'), // Just to get total count
-        api.get('/classes?page=1&per_page=1'), // Just to get total count
-      ]);
-      
-      return {
-        students: studentsRes.data,
-        teachers: teachersRes.data,
-        classes: classesRes.data,
-      };
-    },
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
+  // Fetch dashboard data using the new hook
+  const { data: dashboardData, isLoading, error } = useAdminDashboard();
 
-  // KPI data - will be populated with real data
+  // KPI data from API
   const kpiData = [
     {
       title: 'Total Students',
-      value: dashboardData?.students?.total || '0',
-      change: '+12%',
-      changeType: 'increase' as const,
+      value: dashboardData?.kpis?.total_students?.current?.toString() || '0',
+      change: `${(dashboardData?.kpis?.total_students?.change_percentage || 0) > 0 ? '+' : ''}${dashboardData?.kpis?.total_students?.change_percentage || 0}%`,
+      changeType: dashboardData?.kpis?.total_students?.change_type || 'no_change',
       icon: UsersIcon,
       color: 'bg-brand-500',
       href: '/students?status=active'
     },
     {
       title: 'Total Teachers',
-      value: dashboardData?.teachers?.total || '0',
-      change: '+5%',
-      changeType: 'increase' as const,
+      value: dashboardData?.kpis?.total_teachers?.current?.toString() || '0',
+      change: `${(dashboardData?.kpis?.total_teachers?.change_percentage || 0) > 0 ? '+' : ''}${dashboardData?.kpis?.total_teachers?.change_percentage || 0}%`,
+      changeType: dashboardData?.kpis?.total_teachers?.change_type || 'no_change',
       icon: AcademicCapIcon,
       color: 'bg-success-500',
       href: '/teachers?status=active'
     },
     {
       title: 'Active Classes',
-      value: dashboardData?.classes?.total || '0',
-      change: '+8%',
-      changeType: 'increase' as const,
+      value: dashboardData?.kpis?.active_classes?.current?.toString() || '0',
+      change: `${(dashboardData?.kpis?.active_classes?.change_percentage || 0) > 0 ? '+' : ''}${dashboardData?.kpis?.active_classes?.change_percentage || 0}%`,
+      changeType: dashboardData?.kpis?.active_classes?.change_type || 'no_change',
       icon: BookOpenIcon,
       color: 'bg-warn-500',
       href: '/classes?status=active'
     },
     {
       title: 'Attendance Rate',
-      value: '94.2%',
-      change: '+2.1%',
-      changeType: 'increase' as const,
+      value: `${dashboardData?.kpis?.attendance_rate?.current || 0}%`,
+      change: `${(dashboardData?.kpis?.attendance_rate?.change_percentage || 0) > 0 ? '+' : ''}${dashboardData?.kpis?.attendance_rate?.change_percentage || 0}%`,
+      changeType: dashboardData?.kpis?.attendance_rate?.change_type || 'no_change',
       icon: ChartBarIcon,
       color: 'bg-error-500',
       href: '/attendance?range=this-month'
@@ -189,63 +170,93 @@ const TailwindAdminDashboard: React.FC = () => {
             View More →
           </button>
         </div>
-        <div className="h-64 bg-surface-50 rounded-xl flex items-center justify-center">
-          <div className="text-center">
-            <ChartBarIcon className="w-12 h-12 text-surface-400 mx-auto mb-2" />
-            <p className="text-surface-600">Chart will be implemented with Chart.js or Recharts</p>
-            <p className="text-sm text-surface-500 mt-2">Showing distribution of students across classes</p>
+        <div className="h-64">
+          {dashboardData?.charts?.students_by_class && dashboardData.charts.students_by_class.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dashboardData.charts.students_by_class}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="label" 
+                  tick={{ fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Number of Students', angle: -90, position: 'insideLeft', fontSize: 12 }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value: any) => [`${value} students`, 'Students']}
+                />
+                <Bar 
+                  dataKey="value" 
+                  fill="#3b82f6" 
+                  radius={[4, 4, 0, 0]}
+                  name="Students"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full bg-surface-50 rounded-xl flex items-center justify-center">
+              <div className="text-center">
+                <ChartBarIcon className="w-12 h-12 text-surface-400 mx-auto mb-2" />
+                <p className="text-surface-600">No class data available</p>
+                <p className="text-sm text-surface-500 mt-2">Add classes and students to see the distribution</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-surface-600">Unread Notifications</p>
+              <p className="text-2xl font-bold text-surface-900 mt-1">{dashboardData?.quick_stats?.unread_notifications || 0}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-brand-500">
+              <BellIcon className="w-6 h-6 text-white" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-surface-600">Upcoming Events</p>
+              <p className="text-2xl font-bold text-surface-900 mt-1">{dashboardData?.quick_stats?.upcoming_events || 0}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-success-500">
+              <ClockIcon className="w-6 h-6 text-white" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-surface-600">Overdue Fees</p>
+              <p className="text-2xl font-bold text-surface-900 mt-1">{dashboardData?.quick_stats?.overdue_fees || 0}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-error-500">
+              <ExclamationTriangleIcon className="w-6 h-6 text-white" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
-        <h3 className="text-lg font-semibold text-surface-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-          <button 
-            onClick={() => navigate('/students/new')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <UsersIcon className="w-6 h-6 text-brand-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Add Student</span>
-          </button>
-          <button 
-            onClick={() => navigate('/teachers/new')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <AcademicCapIcon className="w-6 h-6 text-success-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Add Teacher</span>
-          </button>
-          <button 
-            onClick={() => navigate('/classes/new')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <BookOpenIcon className="w-6 h-6 text-warn-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Create Class</span>
-          </button>
-          <button 
-            onClick={() => navigate('/fees/new')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <CurrencyDollarIcon className="w-6 h-6 text-error-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Manage Fees</span>
-          </button>
-          <button 
-            onClick={() => navigate('/reports')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <ChartBarIcon className="w-6 h-6 text-brand-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">View Reports</span>
-          </button>
-          <button 
-            onClick={() => navigate('/communication')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <ClockIcon className="w-6 h-6 text-success-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Send Message</span>
-          </button>
-        </div>
-      </div>
+
+
+
     </div>
   );
 };

@@ -12,19 +12,32 @@ import {
   DocumentArrowDownIcon,
   XMarkIcon,
   CogIcon,
-  AdjustmentsHorizontalIcon
+  AdjustmentsHorizontalIcon,
+  UserIcon
 } from '@heroicons/react/24/outline';
 import { useStudents } from '../../hooks/useStudents';
 import { useForm } from '../../hooks/useForm';
 import { studentsService, Student } from '../../services/students';
 import TailwindFormRenderer from '../../components/form-builder/TailwindFormRenderer';
 import SkeletonLoader from '../../components/common/SkeletonLoader';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '../../store';
+import { startImpersonation } from '../../store/authSlice';
+import { authService } from '../../services/auth';
+import { tokenUtils } from '../../services/auth';
 
 
 
 const TailwindStudentsPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
+  
+  // Debug logging
+  console.log('🔍 StudentsPage - Current user:', user);
+  console.log('🔍 StudentsPage - User role:', user?.role);
+  
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
@@ -269,6 +282,48 @@ const TailwindStudentsPage: React.FC = () => {
   const handleCancelDelete = () => {
     setDeleteDialogOpen(false);
     setStudentToDelete(null);
+  };
+
+  const handleBecomeUser = async (userId: number, userType: string) => {
+    try {
+      const response = await authService.impersonateUser(userId);
+      
+      console.log('🎭 Impersonation response:', response);
+      console.log('🎭 Response data structure:', {
+        access_token: response.access_token,
+        impersonated_user: response.impersonated_user,
+        original_user: response.original_user,
+        session_id: response.session_id
+      });
+      
+      // Store the impersonation session token
+      tokenUtils.setTokens(response.access_token, tokenUtils.getRefreshToken() || '');
+      
+      // Store original user data in localStorage for page refresh recovery
+      localStorage.setItem('originalUser', JSON.stringify(response.original_user));
+      localStorage.setItem('isImpersonating', 'true');
+      
+      // Update Redux store with impersonated user data
+      const impersonationAction = {
+        impersonatedUser: response.impersonated_user,
+        originalUser: response.original_user,
+        token: response.access_token
+      };
+      
+      console.log('🎭 Dispatching impersonation action:', impersonationAction);
+      console.log('🎭 Impersonated user data:', impersonationAction.impersonatedUser);
+      console.log('🎭 Original user data:', impersonationAction.originalUser);
+      
+      dispatch(startImpersonation(impersonationAction));
+      
+      console.log('✅ Redux store updated with impersonated user:', response.impersonated_user);
+      
+      // Navigate to dashboard - the navigation should automatically update based on the new user role
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Failed to impersonate user:', error);
+      setError('Failed to impersonate user. Please try again.');
+    }
   };
 
   const handleEditForm = () => {
@@ -643,6 +698,16 @@ const TailwindStudentsPage: React.FC = () => {
                               <EyeIcon className="w-4 h-4 mr-2" />
                               View Details
                             </button>
+
+                            {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                              <button
+                                onClick={() => handleBecomeUser(student.user.id, 'student')}
+                                className="w-full flex items-center px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 transition-colors duration-200 border-t border-gray-100"
+                              >
+                                <UserIcon className="w-4 h-4 mr-2" />
+                                Become Student
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteStudent(student)}
                               className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
@@ -779,6 +844,16 @@ const TailwindStudentsPage: React.FC = () => {
                       <EyeIcon className="w-4 h-4 mr-2" />
                       View Details
                     </button>
+
+                    {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                      <button
+                        onClick={() => handleBecomeUser(student.user.id, 'student')}
+                        className="w-full flex items-center px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 transition-colors duration-200 border-t border-gray-100"
+                      >
+                        <UserIcon className="w-4 h-4 mr-2" />
+                        Become Student
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDeleteStudent(student)}
                       className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"

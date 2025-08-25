@@ -163,6 +163,18 @@ export const authService = {
     const response = await api.post('/auth/switch-role', { new_role: newRole });
     return response.data;
   },
+
+  // Impersonate user (admin only)
+  impersonateUser: async (userId: number): Promise<{ access_token: string; impersonated_user: any; original_user: any; session_id: number }> => {
+    const response = await api.post(`/auth/impersonate-user/${userId}`);
+    return response.data;
+  },
+
+  // Stop impersonation
+  stopImpersonation: async (): Promise<{ access_token: string }> => {
+    const response = await api.post('/auth/stop-impersonation');
+    return response.data;
+  },
 };
 
 // Token management utilities

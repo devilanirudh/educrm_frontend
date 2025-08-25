@@ -20,15 +20,21 @@ import StudentsPage from './pages/students/TailwindStudentsPage';
 import TeachersPage from './pages/teachers/TeachersPage';
 import ClassesPage from './pages/classes/ClassesPage';
 import AssignmentsPage from './pages/assignments/AssignmentsPage';
+import StudentAssignments from './pages/portal/StudentAssignments';
+import StudentExamsPage from './pages/exams/StudentExamsPage';
 import ExamsPage from './pages/exams/ExamsPage';
 
 // Management pages
 import FeesPage from './pages/fees/FeesPage';
 import LiveClassesPage from './pages/live-classes/LiveClassesPage';
+import JoinLiveClassPage from './pages/live-classes/JoinLiveClassPage';
 import LibraryPage from './pages/library/LibraryPage';
 import TransportPage from './pages/transport/TransportPage';
 import HostelPage from './pages/hostel/HostelPage';
 import EventsPage from './pages/events/EventsPage';
+import EventsManagementPage from './pages/events/EventsManagementPage';
+import StudentEventsPage from './pages/events/StudentEventsPage';
+import ParentEventsPage from './pages/events/ParentEventsPage';
 
 // System pages
 import CMSPage from './pages/cms/CMSPage';
@@ -44,6 +50,7 @@ import NotificationsPage from './pages/notifications/NotificationsPage';
 import RoleManagementPage from './pages/admin/RoleManagementPage';
 import AttendancePage from './pages/attendance/AttendancePage';
 import StudentAttendancePage from './pages/attendance/StudentAttendancePage';
+import AdminAttendancePage from './pages/attendance/AdminAttendancePage';
 import TeacherClassesAttendance from './components/attendance/TeacherClassesAttendance';
 import DynamicDashboard from './components/common/DynamicDashboard';
 import StudentClassesPage from './pages/classes/StudentClassesPage';
@@ -117,6 +124,8 @@ const App: React.FC = () => {
         }
       />
 
+
+
       {/* Academic Routes */}
       <Route
         path="/students"
@@ -154,6 +163,26 @@ const App: React.FC = () => {
           <ProtectedRoute>
             <TailwindLayout>
               <AssignmentsPage />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student-assignments"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <StudentAssignments />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student-exams"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <StudentExamsPage />
             </TailwindLayout>
           </ProtectedRoute>
         }
@@ -203,6 +232,16 @@ const App: React.FC = () => {
         }
       />
       <Route
+        path="/live-classes/join/:id"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <JoinLiveClassPage />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/library"
         element={
           <ProtectedRoute>
@@ -238,6 +277,36 @@ const App: React.FC = () => {
           <ProtectedRoute>
             <TailwindLayout>
               <EventsPage />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events/management"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <EventsManagementPage />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events/student"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <StudentEventsPage />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events/parent"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <ParentEventsPage />
             </TailwindLayout>
           </ProtectedRoute>
         }
@@ -322,6 +391,16 @@ const App: React.FC = () => {
           <ProtectedRoute>
             <TailwindLayout>
               <StudentAttendancePage />
+            </TailwindLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-attendance"
+        element={
+          <ProtectedRoute>
+            <TailwindLayout>
+              <AdminAttendancePage />
             </TailwindLayout>
           </ProtectedRoute>
         }

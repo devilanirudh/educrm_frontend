@@ -1,152 +1,156 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  CircularProgress,
-  Box,
-  Chip,
-} from '@mui/material';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { Assignment, AssignmentCreateRequest, AssignmentUpdateRequest } from '../../services/assignments';
-import { classesService, Class } from '../../services/classes';
-import { subjectsService, Subject } from '../../services/subjects';
+import React from 'react';
+import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useForm } from '../../hooks/useForm';
+import { useAssignmentDropdowns, useTeacherClasses, useTeacherClassSubjects } from '../../hooks/useAssignments';
+import TailwindFormRenderer from '../form-builder/TailwindFormRenderer';
 
 interface AssignmentFormProps {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
-  onSave: (data: AssignmentCreateRequest | AssignmentUpdateRequest) => void;
-  initialData?: Assignment | null;
-  isSaving: boolean;
+  onSave?: (data: any) => Promise<void>;
+  assignmentData?: any;
+  readOnly?: boolean;
 }
 
-const validationSchema = Yup.object({
-  title: Yup.string().required('Title is required'),
-  class_id: Yup.number().required('Class is required'),
-  subject_id: Yup.number().required('Subject is required'),
-  due_date: Yup.date().required('Due date is required').nullable(),
-  instructions: Yup.string(),
-});
+const AssignmentForm: React.FC<AssignmentFormProps> = ({
+  isOpen,
+  onClose,
+  onSave,
+  assignmentData,
+  readOnly = false
+}) => {
+  const { formSchema, isFormSchemaLoading } = useForm('assignment_form');
+  const { teachers, isTeachersLoading } = useAssignmentDropdowns();
+  const { classes, isClassesLoading } = useTeacherClasses(assignmentData?.teacher_id || null);
+  const { subjects, isSubjectsLoading } = useTeacherClassSubjects(
+    assignmentData?.teacher_id || null, 
+    assignmentData?.class_id || null
+  );
 
-const AssignmentForm: React.FC<AssignmentFormProps> = ({ open, onClose, onSave, initialData, isSaving }) => {
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  // Create enhanced form schema with dynamic dropdown options
+  const enhancedFormSchema = React.useMemo(() => {
+    if (!formSchema) return null;
 
-  useEffect(() => {
-    if (open) {
-      classesService.getClasses({ per_page: 100 }).then((response: { data: Class[] }) => {
-        setClasses(response.data);
-      });
-      subjectsService.getSubjects({ per_page: 100 }).then((response: { data: Subject[] }) => {
-        setSubjects(response.data);
-      });
+    const enhancedSchema = { ...formSchema };
+    enhancedSchema.fields = formSchema.fields.map(field => {
+      if (field.field_name === 'teacher_id') {
+        return {
+          ...field,
+          options: teachers.map((teacher, index) => ({
+            id: index + 1,
+            value: teacher.value,
+            label: teacher.label,
+            order: index + 1
+          }))
+        };
+      }
+      if (field.field_name === 'class_id') {
+        return {
+          ...field,
+          options: classes.map((cls, index) => ({
+            id: index + 1,
+            value: cls.value,
+            label: cls.label,
+            order: index + 1
+          }))
+        };
+      }
+      if (field.field_name === 'subject_id') {
+        return {
+          ...field,
+          options: subjects.map((subject, index) => ({
+            id: index + 1,
+            value: subject.value,
+            label: subject.label,
+            order: index + 1
+          }))
+        };
+      }
+      return field;
+    });
+
+    return enhancedSchema;
+  }, [formSchema, teachers, classes, subjects]);
+
+  // Function to map assignment data to form fields
+  const mapAssignmentToFormData = (assignment: any): Record<string, any> => {
+    if (!assignment || !formSchema) return {};
+
+    const formData: Record<string, any> = {};
+
+    formSchema.fields.forEach(field => {
+      let value: any = undefined;
+
+      if (assignment.dynamic_data && assignment.dynamic_data[field.field_name] !== undefined) {
+        value = assignment.dynamic_data[field.field_name];
+      } else if ((assignment as any)[field.field_name] !== undefined) {
+        value = (assignment as any)[field.field_name];
+      }
+
+      if (value !== undefined) {
+        if (field.field_type === 'date' && value) {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            formData[field.field_name] = date.toISOString().split('T')[0];
+          } else {
+            formData[field.field_name] = value;
+          }
+        } else {
+          formData[field.field_name] = value;
+        }
+      }
+    });
+
+    return formData;
+  };
+
+  const handleFormSave = async (data: any) => {
+    if (onSave) {
+      await onSave(data);
+    } else {
+      console.log('Form data:', data);
+      onClose();
     }
-  }, [open]);
+  };
 
-  const formik = useFormik<AssignmentCreateRequest | AssignmentUpdateRequest>({
-    initialValues: {
-      title: initialData?.title || '',
-      class_id: initialData?.class_id || undefined,
-      subject_id: initialData?.subject_id || undefined,
-      due_date: initialData?.due_date || undefined,
-      instructions: initialData?.instructions || '',
-    },
-    validationSchema,
-    enableReinitialize: true,
-    onSubmit: (values) => {
-      onSave(values);
-    },
-  });
+  if (!isOpen) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{initialData ? 'Edit Assignment' : 'Add New Assignment'}</DialogTitle>
-      <form onSubmit={formik.handleSubmit}>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={3} sx={{ pt: 1 }}>
-            <TextField
-              name="title"
-              label="Assignment Title"
-              value={formik.values.title}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.title && Boolean(formik.errors.title)}
-              helperText={formik.touched.title && formik.errors.title}
-              fullWidth
-            />
-            <TextField
-              select
-              name="class_id"
-              label="Class"
-              value={formik.values.class_id}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.class_id && Boolean(formik.errors.class_id)}
-              helperText={formik.touched.class_id && formik.errors.class_id}
-            >
-              {classes.map(c => (
-                <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              name="subject_id"
-              label="Subject"
-              value={formik.values.subject_id}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.subject_id && Boolean(formik.errors.subject_id)}
-              helperText={formik.touched.subject_id && formik.errors.subject_id}
-            >
-              {subjects.map(s => (
-                <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
-              ))}
-            </TextField>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                label="Due Date"
-                value={formik.values.due_date ? new Date(formik.values.due_date) : null}
-                onChange={(date) => formik.setFieldValue('due_date', date)}
-                slotProps={{
-                  textField: {
-                    onBlur: formik.handleBlur,
-                    error: formik.touched.due_date && Boolean(formik.errors.due_date),
-                    helperText: formik.touched.due_date && formik.errors.due_date,
-                  },
-                }}
-              />
-            </LocalizationProvider>
-            <TextField
-              name="instructions"
-              label="Instructions"
-              multiline
-              rows={4}
-              value={formik.values.instructions}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.instructions && Boolean(formik.errors.instructions)}
-              helperText={formik.touched.instructions && formik.errors.instructions}
-              fullWidth
-            />
-
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="contained" disabled={isSaving}>
-            {isSaving ? <CircularProgress size={24} /> : 'Save'}
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-surface-900">
+            {assignmentData
+              ? `${readOnly ? 'View' : 'Edit'} Assignment - ${assignmentData.title}`
+              : 'Add New Assignment'
+            }
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-surface-400 hover:text-surface-600"
+          >
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+        
+        {enhancedFormSchema ? (
+          <TailwindFormRenderer
+            schema={enhancedFormSchema}
+            onSubmit={handleFormSave}
+            initialData={assignmentData ? mapAssignmentToFormData(assignmentData) : undefined}
+            onCancel={onClose}
+            isEditMode={!!assignmentData}
+          />
+        ) : (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+            <span className="ml-2 text-surface-600">
+              {isFormSchemaLoading ? 'Loading form...' : isTeachersLoading ? 'Loading teachers...' : 'Loading...'}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

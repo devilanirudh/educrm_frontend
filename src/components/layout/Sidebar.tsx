@@ -125,8 +125,8 @@ const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
     ];
 
     const studentItems = [
-      { text: 'My Classes', icon: <Class />, path: '/classes' },
-      { text: 'Assignments', icon: <Assignment />, path: '/assignments' },
+      { text: 'My Classes', icon: <Class />, path: '/student-classes' },
+      { text: 'Assignments', icon: <Assignment />, path: '/student-assignments' },
       { text: 'Exams', icon: <Quiz />, path: '/exams' },
       { text: 'Live Classes', icon: <VideoCall />, path: '/live-classes' },
       { text: 'Library', icon: <LibraryBooks />, path: '/library' },

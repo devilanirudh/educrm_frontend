@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from 'react-query';
-import {
+import { 
   MagnifyingGlassIcon,
   PlusIcon,
   FunnelIcon,
@@ -11,16 +11,24 @@ import {
   EyeIcon,
   TrashIcon,
   XMarkIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
 import { teachersService, Teacher } from '../../services/teachers';
 import { useTeachers } from '../../hooks/useTeachers';
 import { useForm } from '../../hooks/useForm';
 import TailwindFormRenderer from '../../components/form-builder/TailwindFormRenderer';
 import SkeletonLoader from '../../components/common/SkeletonLoader';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '../../store';
+import { startImpersonation } from '../../store/authSlice';
+import { authService } from '../../services/auth';
+import { tokenUtils } from '../../services/auth';
 
 const TeachersPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
   
   // State variables
   const [page, setPage] = useState(1);
@@ -202,6 +210,36 @@ const TeachersPage: React.FC = () => {
   const handleCancelDelete = () => {
     setIsDeleteDialogOpen(false);
     setTeacherToDelete(null);
+  };
+
+  const handleBecomeUser = async (userId: number, userType: string) => {
+    try {
+      const response = await authService.impersonateUser(userId);
+      
+      console.log('🎭 Impersonation response:', response);
+      
+      // Store the impersonation session token
+      tokenUtils.setTokens(response.access_token, tokenUtils.getRefreshToken() || '');
+      
+      // Store original user data in localStorage for page refresh recovery
+      localStorage.setItem('originalUser', JSON.stringify(response.original_user));
+      localStorage.setItem('isImpersonating', 'true');
+      
+      // Update Redux store with impersonated user data
+      dispatch(startImpersonation({
+        impersonatedUser: response.impersonated_user,
+        originalUser: response.original_user,
+        token: response.access_token
+      }));
+      
+      console.log('✅ Redux store updated with impersonated user:', response.impersonated_user);
+      
+      // Navigate to dashboard - the navigation should automatically update based on the new user role
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Failed to impersonate user:', error);
+      setError('Failed to impersonate user. Please try again.');
+    }
   };
 
   // Function to map teacher data to form fields
@@ -582,6 +620,16 @@ const TeachersPage: React.FC = () => {
                               <EyeIcon className="w-4 h-4 mr-2" />
                               View Details
                             </button>
+
+                            {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                              <button
+                                onClick={() => handleBecomeUser(teacher.user.id, 'teacher')}
+                                className="w-full flex items-center px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 transition-colors duration-200 border-t border-gray-100"
+                              >
+                                <UserIcon className="w-4 h-4 mr-2" />
+                                Become Teacher
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteTeacher(teacher)}
                               className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
@@ -725,6 +773,16 @@ const TeachersPage: React.FC = () => {
                         <EyeIcon className="w-4 h-4 mr-2" />
                         View Details
                       </button>
+
+                      {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                        <button
+                          onClick={() => handleBecomeUser(teacher.user.id, 'teacher')}
+                          className="w-full flex items-center px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 transition-colors duration-200 border-t border-gray-100"
+                        >
+                          <UserIcon className="w-4 h-4 mr-2" />
+                          Become Teacher
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteTeacher(teacher)}
                         className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"

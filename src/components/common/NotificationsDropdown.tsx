@@ -32,8 +32,8 @@ const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ isOpen, o
 
 
 
-  // Use real notifications from API
-  const displayNotifications = notifications;
+  // Use real notifications from API - show only latest 2 in dropdown
+  const displayNotifications = notifications.slice(0, 2);
 
   // Click outside to close
   useEffect(() => {
@@ -223,7 +223,10 @@ const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ isOpen, o
             }}
             className="w-full text-sm text-brand-600 hover:text-brand-700 font-medium"
           >
-            View all notifications
+            {notifications.length > 2 
+              ? `View all ${notifications.length} notifications` 
+              : 'View all notifications'
+            }
           </button>
         </div>
       </div>

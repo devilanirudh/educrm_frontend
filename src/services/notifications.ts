@@ -33,7 +33,9 @@ const notificationsService = {
     if (params?.notification_type) queryParams.append('notification_type', params.notification_type);
     
     const url = `/communication/notifications${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    console.log('🔔 Fetching notifications from:', url);
     const response = await api.get<NotificationPayload[]>(url);
+    console.log('🔔 Notifications response:', response.data);
     return response.data;
   },
 

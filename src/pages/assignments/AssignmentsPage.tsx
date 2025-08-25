@@ -15,8 +15,10 @@ import {
 import { assignmentsService, Assignment } from '../../services/assignments';
 import { useAssignments } from '../../hooks/useAssignments';
 import { useForm } from '../../hooks/useForm';
-import TailwindFormRenderer from '../../components/form-builder/TailwindFormRenderer';
+import { useAssignmentDropdowns, useTeacherClasses, useTeacherClassSubjects } from '../../hooks/useAssignments';
+import TailwindFormRenderer, { TailwindFormField } from '../../components/form-builder/TailwindFormRenderer';
 import SkeletonLoader from '../../components/common/SkeletonLoader';
+import SubmissionsView from '../../components/assignments/SubmissionsView';
 
 const AssignmentsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +39,8 @@ const AssignmentsPage: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
+  const [isSubmissionsViewOpen, setIsSubmissionsViewOpen] = useState(false);
+  const [selectedAssignmentForSubmissions, setSelectedAssignmentForSubmissions] = useState<Assignment | null>(null);
   const [tableVisibleColumns, setTableVisibleColumns] = useState<string[]>([]);
   
   // Refs for click outside detection
@@ -60,6 +64,9 @@ const AssignmentsPage: React.FC = () => {
   });
 
   const { formSchema, isFormSchemaLoading, formSchemaError } = useForm('assignment_form');
+
+  // Dropdown data hooks
+  const { teachers, isTeachersLoading } = useAssignmentDropdowns();
 
   // Visible columns configuration
   const visibleColumns = useMemo(() => {
@@ -245,7 +252,7 @@ const AssignmentsPage: React.FC = () => {
   };
 
   // Subjects for filter
-  const subjects = ['Mathematics', 'Science', 'English', 'History', 'Computer Science', 'Physical Education', 'Art', 'Music'];
+  const subjectOptions = ['Mathematics', 'Science', 'English', 'History', 'Computer Science', 'Physical Education', 'Art', 'Music'];
 
   // Show form not found error with option to create new form
   if (formSchemaError && !isFormSchemaLoading) {
@@ -454,7 +461,7 @@ const AssignmentsPage: React.FC = () => {
                   className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 >
                   <option value="all">All Subjects</option>
-                  {subjects.map((subject) => (
+                  {subjectOptions.map((subject) => (
                     <option key={subject} value={subject}>{subject}</option>
                   ))}
                 </select>
@@ -567,6 +574,16 @@ const AssignmentsPage: React.FC = () => {
                             <button className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200">
                               <EyeIcon className="w-4 h-4 mr-2" />
                               View Details
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedAssignmentForSubmissions(assignment);
+                                setIsSubmissionsViewOpen(true);
+                              }}
+                              className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
+                            >
+                              <EyeIcon className="w-4 h-4 mr-2" />
+                              View Submissions
                             </button>
                             <button
                               onClick={() => handleDeleteAssignment(assignment)}
@@ -794,15 +811,18 @@ const AssignmentsPage: React.FC = () => {
             
           {formSchema ? (
               <TailwindFormRenderer
-              schema={formSchema}
-              onSubmit={handleFormSave}
-              initialData={selectedAssignment ? mapAssignmentToFormData(selectedAssignment) : undefined}
-              onCancel={handleFormClose}
+                schema={formSchema}
+                onSubmit={handleFormSave}
+                initialData={selectedAssignment ? mapAssignmentToFormData(selectedAssignment) : undefined}
+                onCancel={handleFormClose}
                 isEditMode={!!selectedAssignment}
-            />
-          ) : (
+              />
+            ) : (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+                <span className="ml-2 text-surface-600">
+                  {isFormSchemaLoading ? 'Loading form...' : isTeachersLoading ? 'Loading teachers...' : 'Loading...'}
+                </span>
               </div>
             )}
           </div>
@@ -835,6 +855,19 @@ const AssignmentsPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Submissions View Dialog */}
+      {isSubmissionsViewOpen && selectedAssignmentForSubmissions && (
+        <SubmissionsView
+          open={isSubmissionsViewOpen}
+          onClose={() => {
+            setIsSubmissionsViewOpen(false);
+            setSelectedAssignmentForSubmissions(null);
+          }}
+          assignmentId={selectedAssignmentForSubmissions.id}
+          assignmentTitle={selectedAssignmentForSubmissions.title}
+        />
       )}
     </div>
   );

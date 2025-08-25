@@ -76,6 +76,14 @@ export const buildUrl = (baseUrl: string, params?: QueryParams) => {
   return url.pathname + url.search;
 };
 
+// Get the base URL for file uploads (without /api/v1)
+export const getUploadBaseURL = (): string => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  return isDevelopment 
+    ? 'http://localhost:8000'
+    : 'https://educrmbackend-production.up.railway.app';
+};
+
 export const upload = (url: string, file: File) => {
   const formData = new FormData();
   formData.append('file', file);

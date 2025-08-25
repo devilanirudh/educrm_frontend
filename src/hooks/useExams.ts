@@ -67,3 +67,38 @@ export const useExam = (id: number) => {
     isExamLoading,
   };
 };
+
+// Hook for getting available teachers
+export const useExamTeachers = () => {
+  return useQuery(
+    ['exam-teachers'],
+    () => examsService.getAvailableTeachers(),
+    {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+};
+
+// Hook for getting available classes for a teacher
+export const useExamTeacherClasses = (teacherId: number | null) => {
+  return useQuery(
+    ['exam-teacher-classes', teacherId],
+    () => teacherId ? examsService.getAvailableClasses(teacherId) : Promise.resolve({ classes: [] }),
+    {
+      enabled: !!teacherId,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+};
+
+// Hook for getting available subjects for a teacher and class
+export const useExamTeacherClassSubjects = (teacherId: number | null, classId: number | null) => {
+  return useQuery(
+    ['exam-teacher-class-subjects', teacherId, classId],
+    () => (teacherId && classId) ? examsService.getAvailableSubjects(teacherId, classId) : Promise.resolve({ subjects: [] }),
+    {
+      enabled: !!(teacherId && classId),
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+};

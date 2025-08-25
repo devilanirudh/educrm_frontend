@@ -11,9 +11,10 @@ export const useNotifications = (params?: NotificationFilters) => {
     () => notificationsService.getUserNotifications(params),
     {
       enabled: !!token && isAuthenticated, // Only run if user is authenticated and token exists
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 30 * 60 * 1000, // 30 minutes
-      refetchOnWindowFocus: false,
+      staleTime: 30 * 1000, // 30 seconds - shorter stale time for real-time updates
+      cacheTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: true, // Refetch when window gains focus
+      refetchInterval: 15 * 1000, // Refetch every 15 seconds for real-time updates
       retry: false, // Don't retry failed requests
       onError: (error) => {
         console.log('🔔 Notifications API not available, using empty list');

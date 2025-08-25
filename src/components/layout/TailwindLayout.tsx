@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
-import { logout } from '../../store/authSlice';
-import { authService } from '../../services/auth';
+import { logout, stopImpersonation } from '../../store/authSlice';
+import { authService, tokenUtils } from '../../services/auth';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../config/firebase';
 import { useUnreadCount } from '../../hooks/useNotifications';
 import NotificationsDropdown from '../common/NotificationsDropdown';
+import ImpersonationBanner from '../common/ImpersonationBanner';
 import { 
   Bars3Icon, 
   XMarkIcon, 
@@ -30,7 +31,8 @@ import {
   BellIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
-  ClockIcon
+  ClockIcon,
+  UserIcon
 } from '@heroicons/react/24/outline';
 
 interface TailwindLayoutProps {
@@ -46,11 +48,15 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
   const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
+  const isImpersonating = useSelector((state: RootState) => state.auth.isImpersonating);
+  const originalUser = useSelector((state: RootState) => state.auth.originalUser);
   const userMenuRef = useRef<HTMLDivElement>(null);
   
   // Debug user state
   console.log('🔍 Full user state:', user);
   console.log('🔍 User role from Redux:', user?.role);
+  console.log('🔍 Is impersonating:', isImpersonating);
+  console.log('🔍 Original user:', originalUser);
   
   // Notifications
   const { data: unreadCount = { count: 0 } } = useUnreadCount();
@@ -78,6 +84,32 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
     setNotificationsOpen(false);
   };
 
+  // Impersonation handlers
+  const handleSwitchToOriginalUser = async () => {
+    try {
+      console.log('🔄 Switching to original user...');
+      const response = await authService.stopImpersonation();
+      
+      // Clear impersonation tokens and localStorage
+      tokenUtils.clearTokens();
+      localStorage.removeItem('originalUser');
+      localStorage.removeItem('isImpersonating');
+      
+      // Update Redux state to stop impersonation
+      dispatch(stopImpersonation({
+        user: originalUser!,
+        token: response.access_token
+      }));
+      
+      console.log('✅ Switched to original user:', originalUser);
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('❌ Failed to switch to original user:', error);
+    }
+  };
+
   // Navigation items based on user role
   const getNavigationItems = () => {
     const baseItems = [
@@ -93,7 +125,7 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
       { name: 'Transport', href: '/transport', icon: TruckIcon },
       { name: 'Hostel', href: '/hostel', icon: BuildingOfficeIcon },
       { name: 'Events', href: '/events', icon: CalendarIcon },
-      { name: 'Attendance', href: '/attendance', icon: ClockIcon },
+      { name: 'Attendance', href: '/admin-attendance', icon: ClockIcon },
       { name: 'Reports', href: '/reports', icon: ChartBarIcon },
       { name: 'Communication', href: '/communication', icon: ChatBubbleLeftRightIcon },
       { name: 'Inventory', href: '/inventory', icon: CubeIcon },
@@ -108,12 +140,12 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
         { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
         { name: 'My Classes', href: '/student-classes', icon: BookOpenIcon },
         { name: 'Attendance', href: '/student-attendance', icon: ClockIcon },
-        { name: 'Assignments', href: '/assignments', icon: ClipboardDocumentListIcon },
-        { name: 'Exams', href: '/exams', icon: DocumentTextIcon },
+        { name: 'Assignments', href: '/student-assignments', icon: ClipboardDocumentListIcon },
+        { name: 'Exams', href: '/student-exams', icon: DocumentTextIcon },
         { name: 'Live Classes', href: '/live-classes', icon: VideoCameraIcon },
         { name: 'Library', href: '/library', icon: BookOpenIcon },
         { name: 'Transport', href: '/transport', icon: TruckIcon },
-        { name: 'Events', href: '/events', icon: CalendarIcon },
+        { name: 'Events', href: '/events/student', icon: CalendarIcon },
       ];
     }
 
@@ -124,6 +156,7 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
         { name: 'Exams', href: '/exams', icon: DocumentTextIcon },
         { name: 'Live Classes', href: '/live-classes', icon: VideoCameraIcon },
         { name: 'Class', href: '/attendance', icon: ClockIcon },
+        { name: 'Events', href: '/events/management', icon: CalendarIcon },
         { name: 'Reports', href: '/reports', icon: ChartBarIcon },
         { name: 'Communication', href: '/communication', icon: ChatBubbleLeftRightIcon },
       ];
@@ -138,6 +171,7 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
         { name: 'Assignments', href: '/assignments', icon: ClipboardDocumentListIcon },
         { name: 'Exams', href: '/exams', icon: DocumentTextIcon },
         { name: 'Fees', href: '/fees', icon: CreditCardIcon },
+        { name: 'Events', href: '/events/parent', icon: CalendarIcon },
         { name: 'Attendance', href: '/attendance', icon: ClockIcon },
       ];
     }
@@ -268,6 +302,9 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
 
         {/* Main content */}
         <div className="flex flex-col flex-1 min-w-0">
+          {/* Impersonation Banner */}
+          <ImpersonationBanner />
+          
           {/* Header */}
           <header className="sticky top-0 z-30 bg-white border-b border-surface-200 backdrop-blur-sm bg-white/80">
             <div className="flex items-center justify-between h-16 px-4">
@@ -314,7 +351,24 @@ const TailwindLayout: React.FC<TailwindLayoutProps> = ({ children }) => {
                           {user ? `${user.first_name} ${user.last_name}` : 'User'}
                         </p>
                         <p className="text-xs text-surface-500 capitalize">{user?.role || 'user'}</p>
+                        {isImpersonating && (
+                          <p className="text-xs text-amber-600 mt-1">
+                            Impersonating
+                          </p>
+                        )}
                       </div>
+                      
+                      {/* Switch to Original User option when impersonating */}
+                      {isImpersonating && originalUser && (
+                        <button
+                          onClick={handleSwitchToOriginalUser}
+                          className="w-full flex items-center px-4 py-2 text-sm text-amber-700 hover:bg-amber-50 transition-colors duration-200"
+                        >
+                          <UserIcon className="w-4 h-4 mr-2" />
+                          Switch to {originalUser.first_name}
+                        </button>
+                      )}
+                      
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"

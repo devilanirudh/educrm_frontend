@@ -22,23 +22,11 @@ const TailwindTeacherDashboard: React.FC = () => {
   const { data: dashboardData, isLoading, error } = useQuery(
     'teacherDashboard',
     async () => {
-      // We'll implement these API calls later
-      const [classesRes, studentsRes, assignmentsRes, gradesRes] = await Promise.all([
-        api.get('/classes?page=1&per_page=10'), // Teacher's classes
-        api.get('/students?page=1&per_page=1'), // Just to get total count
-        api.get('/assignments?page=1&per_page=5'), // Recent assignments
-        api.get('/grades?page=1&per_page=5'), // Recent grades to grade
-      ]);
-      
-      return {
-        classes: classesRes.data,
-        students: studentsRes.data,
-        assignments: assignmentsRes.data,
-        grades: gradesRes.data,
-      };
+      const res = await api.get('/teachers/me/dashboard');
+      return res.data;
     },
     {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
     }
   );
 
@@ -95,14 +83,7 @@ const TailwindTeacherDashboard: React.FC = () => {
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
-          <button className="inline-flex items-center px-4 py-2 bg-surface-100 text-surface-700 text-sm font-medium rounded-xl hover:bg-surface-200 transition-colors duration-200">
-            <CalendarIcon className="w-4 h-4 mr-2" />
-            View Calendar
-          </button>
-          <button className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors duration-200">
-            <ClipboardDocumentListIcon className="w-4 h-4 mr-2" />
-            Create Assignment
-          </button>
+
         </div>
       </div>
 
@@ -268,55 +249,6 @@ const TailwindTeacherDashboard: React.FC = () => {
               )}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
-        <h3 className="text-lg font-semibold text-surface-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-          <button 
-            onClick={() => navigate('/assignments/new')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <ClipboardDocumentListIcon className="w-6 h-6 text-brand-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Create Assignment</span>
-          </button>
-          <button 
-            onClick={() => navigate('/exams/new')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <DocumentTextIcon className="w-6 h-6 text-error-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Create Exam</span>
-          </button>
-          <button 
-            onClick={() => navigate('/grades')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <ChartBarIcon className="w-6 h-6 text-warn-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Grade Assignments</span>
-          </button>
-          <button 
-            onClick={() => navigate('/attendance')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <CheckCircleIcon className="w-6 h-6 text-success-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Take Attendance</span>
-          </button>
-          <button 
-            onClick={() => navigate('/schedule')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <CalendarIcon className="w-6 h-6 text-brand-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">View Schedule</span>
-          </button>
-          <button 
-            onClick={() => navigate('/communication')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <BellIcon className="w-6 h-6 text-success-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Send Message</span>
-          </button>
         </div>
       </div>
     </div>

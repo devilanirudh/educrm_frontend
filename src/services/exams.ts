@@ -96,6 +96,73 @@ export const examsService = {
     return response.data;
   },
 
+  // Submit exam (student submission)
+  submitExam: async (examId: number, data: { answers: any[]; time_taken_minutes?: number; notes?: string }): Promise<any> => {
+    const response = await api.post(`/exams/${examId}/submit`, data);
+    return response.data;
+  },
+
+  // Get exam results (teacher/admin)
+  getExamResults: async (examId: number, params?: { status?: string; student_id?: number }): Promise<any[]> => {
+    const url = buildUrl(`/exams/${examId}/results`, params);
+    const response = await api.get<any[]>(url);
+    return response.data;
+  },
+
+  // Grade exam result (teacher)
+  gradeExamResult: async (examId: number, resultId: number, data: { score: number; teacher_comments?: string; individual_feedback?: any[] }): Promise<any> => {
+    const response = await api.post(`/exams/${examId}/results/${resultId}/grade`, data);
+    return response.data;
+  },
+
+  // Get student's own exam result
+  getMyExamResult: async (examId: number): Promise<any> => {
+    const response = await api.get(`/exams/${examId}/my-result`);
+    return response.data;
+  },
+
+  // Get available teachers for exam form
+  getAvailableTeachers: async (): Promise<any> => {
+    const response = await api.get('/exams/available-teachers');
+    return response.data;
+  },
+
+  // Get available classes for a teacher
+  getAvailableClasses: async (teacherId: number): Promise<any> => {
+    const response = await api.get(`/exams/available-classes/${teacherId}`);
+    return response.data;
+  },
+
+  // Get available subjects for a teacher and class
+  getAvailableSubjects: async (teacherId: number, classId: number): Promise<any> => {
+    const response = await api.get(`/exams/available-subjects/${teacherId}/${classId}`);
+    return response.data;
+  },
+
+  // Upload file for exam
+  uploadFile: async (file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/exams/upload-file', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Get exam questions
+  getExamQuestions: async (examId: number): Promise<any> => {
+    const response = await api.get(`/exams/${examId}/questions`);
+    return response.data;
+  },
+
+  // Get student exams
+  getStudentExams: async (): Promise<any> => {
+    const response = await api.get('/exams/my-exams');
+    return response.data;
+  },
+
   // Create new exam
   createExam: async (data: ExamCreateRequest): Promise<Exam> => {
     const response = await api.post<Exam>('/exams', data);
@@ -117,25 +184,6 @@ export const examsService = {
   // Delete exam
   deleteExam: async (id: number): Promise<void> => {
     const response = await api.delete(`/exams/${id}`);
-    return response.data;
-  },
-
-  // Get exam results
-  getExamResults: async (id: number, params?: { student_id?: number; grade?: string }): Promise<any[]> => {
-    const url = buildUrl(`/exams/${id}/results`, params);
-    const response = await api.get<any[]>(url);
-    return response.data;
-  },
-
-  // Submit exam result
-  submitExamResult: async (examId: number, data: { student_id: number; marks_obtained: number; grade?: string }): Promise<any> => {
-    const response = await api.post(`/exams/${examId}/results`, data);
-    return response.data;
-  },
-
-  // Update exam status
-  updateExamStatus: async (id: number, status: string): Promise<any> => {
-    const response = await api.post(`/exams/${id}/status`, { status });
     return response.data;
   },
 

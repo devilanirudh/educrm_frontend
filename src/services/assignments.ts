@@ -49,9 +49,9 @@ export interface Assignment {
 export interface AssignmentCreateRequest {
   title: string;
   description?: string;
+  teacher_id: number;
   class_id: number;
   subject_id: number;
-  teacher_id: number;
   due_date: string;
   instructions?: string;
   max_score?: number;
@@ -90,6 +90,40 @@ export const assignmentsService = {
   getAssignments: async (params?: AssignmentFilters): Promise<PaginatedResponse<Assignment>> => {
     const url = buildUrl('/assignments', params);
     const response = await api.get<PaginatedResponse<Assignment>>(url);
+    return response.data;
+  },
+
+  // Get assignments for the current teacher (teacher-specific)
+  getMyCreatedAssignments: async (params?: AssignmentFilters): Promise<PaginatedResponse<Assignment>> => {
+    const url = buildUrl('/assignments/my-created-assignments', params);
+    const response = await api.get<PaginatedResponse<Assignment>>(url);
+    return response.data;
+  },
+
+  // Get assignments for the current student (student-specific)
+  getMyAssignments: async (params?: { 
+    skip?: number; 
+    limit?: number; 
+    search?: string; 
+    subject_id?: number; 
+    status?: string; 
+  }): Promise<{
+    assignments: Assignment[];
+    total: number;
+    page: number;
+    pages: number;
+    has_next: boolean;
+    has_prev: boolean;
+  }> => {
+    const url = buildUrl('/assignments/my-assignments', params);
+    const response = await api.get<{
+      assignments: Assignment[];
+      total: number;
+      page: number;
+      pages: number;
+      has_next: boolean;
+      has_prev: boolean;
+    }>(url);
     return response.data;
   },
 
@@ -142,6 +176,12 @@ export const assignmentsService = {
     return response.data;
   },
 
+  // Get student's own submission for an assignment
+  getMySubmission: async (assignmentId: number): Promise<any> => {
+    const response = await api.get(`/assignments/${assignmentId}/my-submission`);
+    return response.data;
+  },
+
   // Bulk operations
   bulkUpdateAssignments: async (assignment_ids: number[], data: Partial<AssignmentUpdateRequest>): Promise<any> => {
     const response = await api.post('/assignments/bulk-update', { assignment_ids, data });
@@ -177,9 +217,27 @@ export const assignmentsService = {
   },
 
   // Assignment statistics
-  getAssignmentStats: async (params?: { class_id?: number; subject_id?: number }): Promise<any> => {
-    const url = buildUrl('/assignments/stats', params);
-    const response = await api.get(url);
+  getAssignmentStats: async (): Promise<any> => {
+    const response = await api.get('/assignments/stats');
+    return response.data;
+  },
+
+  // Upload file for assignment
+  uploadFile: async (file: File): Promise<{
+    message: string;
+    filename: string;
+    file_url: string;
+    file_path: string;
+    file_size: number;
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/assignments/upload-file', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 
@@ -188,5 +246,21 @@ export const assignmentsService = {
     const url = buildUrl(`/assignments/${id}/report`, params);
     const response = await api.get(url, { responseType: 'blob' });
     return response.data;
+  },
+
+  // Dropdown data methods
+  getAvailableTeachers: async (): Promise<Array<{ value: string; label: string }>> => {
+    const response = await api.get('/assignments/available-teachers');
+    return response.data.teachers;
+  },
+
+  getAvailableClasses: async (teacherId: number): Promise<Array<{ value: string; label: string }>> => {
+    const response = await api.get(`/assignments/available-classes/${teacherId}`);
+    return response.data.classes;
+  },
+
+  getAvailableSubjects: async (teacherId: number, classId: number): Promise<Array<{ value: string; label: string }>> => {
+    const response = await api.get(`/assignments/available-subjects/${teacherId}/${classId}`);
+    return response.data.subjects;
   },
 };

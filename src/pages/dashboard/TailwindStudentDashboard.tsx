@@ -21,23 +21,11 @@ const TailwindStudentDashboard: React.FC = () => {
   const { data: dashboardData, isLoading, error } = useQuery(
     'studentDashboard',
     async () => {
-      // We'll implement these API calls later
-      const [assignmentsRes, examsRes, liveClassesRes, gradesRes] = await Promise.all([
-        api.get('/assignments?page=1&per_page=5'), // Recent assignments
-        api.get('/exams?page=1&per_page=5'), // Upcoming exams
-        api.get('/live-classes?page=1&per_page=5'), // Live classes
-        api.get('/grades?page=1&per_page=5'), // Recent grades
-      ]);
-      
-      return {
-        assignments: assignmentsRes.data,
-        exams: examsRes.data,
-        liveClasses: liveClassesRes.data,
-        grades: gradesRes.data,
-      };
+      const res = await api.get('/students/me/dashboard');
+      return res.data;
     },
     {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
     }
   );
 
@@ -93,16 +81,7 @@ const TailwindStudentDashboard: React.FC = () => {
             Welcome back! Here's your learning progress and upcoming activities.
           </p>
         </div>
-        <div className="mt-4 sm:mt-0 flex space-x-3">
-          <button className="inline-flex items-center px-4 py-2 bg-surface-100 text-surface-700 text-sm font-medium rounded-xl hover:bg-surface-200 transition-colors duration-200">
-            <CalendarIcon className="w-4 h-4 mr-2" />
-            View Schedule
-          </button>
-          <button className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors duration-200">
-            <VideoCameraIcon className="w-4 h-4 mr-2" />
-            Join Live Class
-          </button>
-        </div>
+        {/* Action buttons removed for student dashboard per requirements */}
       </div>
 
       {/* Quick Stats */}
@@ -169,7 +148,7 @@ const TailwindStudentDashboard: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-surface-900">Upcoming Assignments</h3>
             <button 
-              onClick={() => navigate('/assignments')}
+              onClick={() => navigate('/student-assignments')}
               className="text-sm text-brand-600 hover:text-brand-700 font-medium"
             >
               View All →
@@ -310,55 +289,6 @@ const TailwindStudentDashboard: React.FC = () => {
               )}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
-        <h3 className="text-lg font-semibold text-surface-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-          <button 
-            onClick={() => navigate('/assignments')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <ClipboardDocumentListIcon className="w-6 h-6 text-brand-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Assignments</span>
-          </button>
-          <button 
-            onClick={() => navigate('/exams')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <DocumentTextIcon className="w-6 h-6 text-error-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Exams</span>
-          </button>
-          <button 
-            onClick={() => navigate('/live-classes')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <VideoCameraIcon className="w-6 h-6 text-success-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Live Classes</span>
-          </button>
-          <button 
-            onClick={() => navigate('/grades')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <ChartBarIcon className="w-6 h-6 text-warn-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Grades</span>
-          </button>
-          <button 
-            onClick={() => navigate('/schedule')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <CalendarIcon className="w-6 h-6 text-brand-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Schedule</span>
-          </button>
-          <button 
-            onClick={() => navigate('/communication')}
-            className="flex flex-col items-center p-4 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors duration-200"
-          >
-            <BellIcon className="w-6 h-6 text-success-600 mb-2" />
-            <span className="text-sm font-medium text-surface-900">Messages</span>
-          </button>
         </div>
       </div>
     </div>

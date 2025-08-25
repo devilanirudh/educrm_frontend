@@ -148,6 +148,77 @@ export interface CheckOutResponse {
   total_hours: number;
 }
 
+// Admin attendance by class interfaces
+export interface AdminClassAttendance {
+  class_id: number;
+  class_name: string;
+  grade_level: string;
+  academic_year: string;
+  date: string;
+  total_students: number;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  attendance_percentage: number;
+  students: Array<{
+    student_id: number;
+    student_name: string;
+    roll_number: string;
+    status: string;
+    check_in_time?: string;
+    check_out_time?: string;
+    notes?: string;
+  }>;
+}
+
+export interface AdminDailyAttendanceResponse {
+  date: string;
+  classes: AdminClassAttendance[];
+  summary: {
+    total_classes: number;
+    total_students: number;
+    total_present: number;
+    total_absent: number;
+    overall_percentage: number;
+  };
+}
+
+export interface AdminMonthlyAttendanceResponse {
+  year: number;
+  month: number;
+  classes: Array<{
+    class_id: number;
+    class_name: string;
+    grade_level: string;
+    academic_year: string;
+    month: number;
+    year: number;
+    total_students: number;
+    total_days: number;
+    total_present: number;
+    total_absent: number;
+    total_late: number;
+    total_excused: number;
+    monthly_percentage: number;
+    daily_breakdown: Array<{
+      date: string;
+      day_name: string;
+      present: number;
+      absent: number;
+      late: number;
+      total: number;
+      percentage: number;
+    }>;
+  }>;
+  summary: {
+    total_classes: number;
+    total_students: number;
+    total_days: number;
+    overall_monthly_percentage: number;
+  };
+}
+
 class AttendanceService {
   // Attendance Records
   async getStudentAttendance(
@@ -424,6 +495,33 @@ class AttendanceService {
       month: 'short',
       day: 'numeric'
     });
+  }
+
+  // Admin attendance by class methods
+  async getAdminAttendanceByClassDaily(params?: {
+    class_id?: number;
+    date?: string;
+  }): Promise<AdminDailyAttendanceResponse> {
+    const queryParams = new URLSearchParams();
+    if (params?.class_id) queryParams.append('class_id', params.class_id.toString());
+    if (params?.date) queryParams.append('date', params.date);
+
+    const response = await api.get(`/attendance/admin/by-class/daily?${queryParams}`);
+    return response.data;
+  }
+
+  async getAdminAttendanceByClassMonthly(params?: {
+    class_id?: number;
+    year?: number;
+    month?: number;
+  }): Promise<AdminMonthlyAttendanceResponse> {
+    const queryParams = new URLSearchParams();
+    if (params?.class_id) queryParams.append('class_id', params.class_id.toString());
+    if (params?.year) queryParams.append('year', params.year.toString());
+    if (params?.month) queryParams.append('month', params.month.toString());
+
+    const response = await api.get(`/attendance/admin/by-class/monthly?${queryParams}`);
+    return response.data;
   }
 }
 

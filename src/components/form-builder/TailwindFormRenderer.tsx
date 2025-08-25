@@ -1,6 +1,29 @@
 import React from 'react';
 import { FormSchema, FormField as FormFieldType } from '../../types/form';
-import { LockClosedIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { LockClosedIcon, PlusIcon, TrashIcon, EyeIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { useAssignmentDropdowns, useTeacherClasses, useTeacherClassSubjects } from '../../hooks/useAssignments';
+import { useExamTeachers, useExamTeacherClasses, useExamTeacherClassSubjects } from '../../hooks/useExams';
+import { getUploadBaseURL } from '../../services/api';
+
+// Helper function to determine file type and get appropriate icon
+const getFileInfo = (fileUrl: string) => {
+  // Add type checking to prevent errors
+  if (!fileUrl || typeof fileUrl !== 'string') {
+    return { type: 'file', icon: '📎', label: 'View File' };
+  }
+  
+  const extension = fileUrl.split('.').pop()?.toLowerCase();
+  
+  if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension || '')) {
+    return { type: 'image', icon: '🖼️', label: 'View Image' };
+  } else if (extension === 'pdf') {
+    return { type: 'pdf', icon: '📄', label: 'View PDF' };
+  } else if (['doc', 'docx'].includes(extension || '')) {
+    return { type: 'document', icon: '📝', label: 'View Document' };
+  } else {
+    return { type: 'file', icon: '📎', label: 'View File' };
+  }
+};
 
 interface TailwindFormRendererProps {
   schema?: FormSchema;
@@ -18,8 +41,6 @@ interface DynamicConfigFieldProps {
 }
 
 const DynamicConfigField: React.FC<DynamicConfigFieldProps> = ({ field, value, onChange, isDisabled }) => {
-  console.log('DynamicConfigField render:', { field: field.field_name, value, onChange: !!onChange });
-  
   // Initialize configs from value or empty array
   const [configs, setConfigs] = React.useState<Array<{class: string, section: string, subject: string}>>(
     Array.isArray(value) ? value : []
@@ -36,9 +57,7 @@ const DynamicConfigField: React.FC<DynamicConfigFieldProps> = ({ field, value, o
   const handleAddConfig = () => {
     if (newConfig.class && newConfig.section && newConfig.subject) {
       const updatedConfigs = [...configs, { ...newConfig }];
-      console.log('handleAddConfig called:', { newConfig, updatedConfigs });
       setConfigs(updatedConfigs);
-      console.log('Calling onChange with:', updatedConfigs);
       onChange(updatedConfigs);
       setNewConfig({ class: '', section: '', subject: '' });
     }
@@ -122,8 +141,6 @@ const DynamicConfigField: React.FC<DynamicConfigFieldProps> = ({ field, value, o
         <button
           type="button"
           onClick={() => {
-            console.log('Add button clicked');
-            console.log('Current newConfig:', newConfig);
             handleAddConfig();
           }}
           disabled={isDisabled || !newConfig.class || !newConfig.section || !newConfig.subject}
@@ -141,10 +158,13 @@ const TailwindFormField: React.FC<{
   value: any; 
   onChange: (value: any) => void;
   isEditMode?: boolean;
-}> = ({ field, value, onChange, isEditMode = false }) => {
+  isDisabled?: boolean;
+  schema?: any;
+}> = ({ field, value, onChange, isEditMode = false, isDisabled: externalDisabled = false, schema }) => {
   // Lock required fields in edit mode (these are the base/core fields)
-  const isDisabled = field.is_required && isEditMode;
-  
+  // const internalDisabled = field.is_required && isEditMode;
+  // const isDisabled = externalDisabled || internalDisabled;
+  const isDisabled = externalDisabled;
   const baseFieldClasses = "w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent";
   const disabledClasses = "bg-surface-100 text-surface-500 cursor-not-allowed";
   
@@ -346,18 +366,86 @@ const TailwindFormField: React.FC<{
             name={field.field_name}
             accept={field.field_type === "image" ? "image/*" : "*/*"}
             required={field.is_required}
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0];
               if (file) {
-                onChange(file);
+                try {
+                  // Upload file to server based on form type
+                  let result;
+                  if (schema?.key === 'exam_form') {
+                    const { examsService } = await import('../../services/exams');
+                    result = await examsService.uploadFile(file);
+                  } else {
+                    const { assignmentsService } = await import('../../services/assignments');
+                    result = await assignmentsService.uploadFile(file);
+                  }
+                  onChange(result.file_url); // Store the file URL
+                } catch (error) {
+                  console.error('Error uploading file:', error);
+                  // Fallback to storing file object
+                  onChange(file);
+                }
               }
             }}
             disabled={isDisabled}
             className={fieldClasses}
           />
           {value && typeof value === 'string' && (
-            <div className="mt-2 text-sm text-surface-600">
-              Current file: {value}
+            <div className="mt-2">
+              {value.startsWith('/uploads/') ? (
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    // Additional safety check
+                    if (!value || typeof value !== 'string') {
+                      return (
+                        <span className="text-sm text-gray-500">
+                          Invalid file data
+                        </span>
+                      );
+                    }
+                    
+                    const fileInfo = getFileInfo(value);
+                    const fullUrl = `${getUploadBaseURL()}${value}`;
+                    
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => window.open(fullUrl, '_blank')}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                          title={fileInfo.label}
+                        >
+                          <EyeIcon className="w-4 h-4" />
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = fullUrl;
+                            link.download = value.split('/').pop() || 'assignment-file';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                          title="Download File"
+                        >
+                          <ArrowDownTrayIcon className="w-4 h-4" />
+                          Download
+                        </button>
+                        <span className="text-sm text-gray-500">
+                          {value.split('/').pop()}
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div className="text-sm text-surface-600">
+                  Current file: {value}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -376,6 +464,22 @@ const TailwindFormRenderer: React.FC<TailwindFormRendererProps> = ({
 }) => {
   const [formData, setFormData] = React.useState<Record<string, any>>({});
 
+  // Cascading dropdown hooks for assignment form
+  const { teachers, isTeachersLoading } = useAssignmentDropdowns();
+  const { classes, isClassesLoading } = useTeacherClasses(formData.teacher_id ? parseInt(formData.teacher_id) : null);
+  const { subjects, isSubjectsLoading } = useTeacherClassSubjects(
+    formData.teacher_id ? parseInt(formData.teacher_id) : null, 
+    formData.class_id ? parseInt(formData.class_id) : null
+  );
+
+  // Cascading dropdown hooks for exam form
+  const examTeachersQuery = useExamTeachers();
+  const examClassesQuery = useExamTeacherClasses(formData.teacher_id ? parseInt(formData.teacher_id) : null);
+  const examSubjectsQuery = useExamTeacherClassSubjects(
+    formData.teacher_id ? parseInt(formData.teacher_id) : null, 
+    formData.class_id ? parseInt(formData.class_id) : null
+  );
+
   // Update form data when initialData changes (for edit mode)
   React.useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
@@ -386,15 +490,111 @@ const TailwindFormRenderer: React.FC<TailwindFormRendererProps> = ({
   }, [initialData]);
 
   const handleChange = (fieldName: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [fieldName]: value }));
+    setFormData((prev) => {
+      const newData = { ...prev, [fieldName]: value };
+      
+      // Handle cascading dropdowns for assignment form
+      if (fieldName === 'teacher_id') {
+        // Clear dependent fields when teacher changes
+        newData.class_id = '';
+        newData.subject_id = '';
+      } else if (fieldName === 'class_id') {
+        // Clear subject when class changes
+        newData.subject_id = '';
+      }
+      
+      return newData;
+    });
   };
+
+  // Create enhanced schema with dynamic options for cascading dropdowns
+  const enhancedSchema = React.useMemo(() => {
+    if (!schema) return null;
+
+    const enhanced = { ...schema };
+    enhanced.fields = schema.fields.map(field => {
+      // Handle assignment form dropdowns
+      if (field.field_name === 'teacher_id' && schema.key === 'assignment_form') {
+        return {
+          ...field,
+          options: teachers.map((teacher, index) => ({
+            id: index + 1,
+            value: teacher.value,
+            label: teacher.label,
+            order: index + 1
+          }))
+        };
+      }
+      if (field.field_name === 'class_id' && schema.key === 'assignment_form') {
+        return {
+          ...field,
+          options: classes.map((cls, index) => ({
+            id: index + 1,
+            value: cls.value,
+            label: cls.label,
+            order: index + 1
+          }))
+        };
+      }
+      if (field.field_name === 'subject_id' && schema.key === 'assignment_form') {
+        return {
+          ...field,
+          options: subjects.map((subject, index) => ({
+            id: index + 1,
+            value: subject.value,
+            label: subject.label,
+            order: index + 1
+          }))
+        };
+      }
+
+      // Handle exam form dropdowns
+      if (field.field_name === 'teacher_id' && schema.key === 'exam_form') {
+        return {
+          ...field,
+          options: (examTeachersQuery.data?.teachers || []).map((teacher: any, index: number) => ({
+            id: index + 1,
+            value: teacher.value,
+            label: teacher.label,
+            order: index + 1
+          }))
+        };
+      }
+      if (field.field_name === 'class_id' && schema.key === 'exam_form') {
+        return {
+          ...field,
+          options: (examClassesQuery.data?.classes || []).map((cls: any, index: number) => ({
+            id: index + 1,
+            value: cls.value,
+            label: cls.label,
+            order: index + 1
+          }))
+        };
+      }
+      if (field.field_name === 'subject_id' && schema.key === 'exam_form') {
+        return {
+          ...field,
+          options: (examSubjectsQuery.data?.subjects || []).map((subject: any, index: number) => ({
+            id: index + 1,
+            value: subject.value,
+            label: subject.label,
+            order: index + 1
+          }))
+        };
+      }
+
+      return field;
+    });
+
+    return enhanced;
+  }, [schema, teachers, classes, subjects, examTeachersQuery.data, examClassesQuery.data, examSubjectsQuery.data]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
   };
 
-  if (!schema) {
+  if (!enhancedSchema) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
@@ -405,15 +605,24 @@ const TailwindFormRenderer: React.FC<TailwindFormRendererProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-surface-900">{schema.name}</h2>
-        {schema.description && (
-          <p className="text-sm text-surface-600 mt-1">{schema.description}</p>
+        <h2 className="text-xl font-semibold text-surface-900">{enhancedSchema.name}</h2>
+        {enhancedSchema.description && (
+          <p className="text-sm text-surface-600 mt-1">{enhancedSchema.description}</p>
         )}
       </div>
       
       <div className="max-h-96 overflow-y-auto space-y-4">
-        {schema.fields.map((field) => {
+        {enhancedSchema.fields.map((field) => {
           const fieldValue = formData[field.field_name];
+          
+          // Add loading states for cascading dropdowns
+          let isFieldDisabled = false;
+          if (field.field_name === 'class_id' && !formData.teacher_id) {
+            isFieldDisabled = true;
+          }
+          if (field.field_name === 'subject_id' && (!formData.teacher_id || !formData.class_id)) {
+            isFieldDisabled = true;
+          }
           
           return (
             <TailwindFormField
@@ -422,6 +631,8 @@ const TailwindFormRenderer: React.FC<TailwindFormRendererProps> = ({
               value={fieldValue}
               onChange={(value) => handleChange(field.field_name, value)}
               isEditMode={isEditMode}
+              isDisabled={isFieldDisabled}
+              schema={enhancedSchema}
             />
           );
         })}
@@ -441,7 +652,7 @@ const TailwindFormRenderer: React.FC<TailwindFormRendererProps> = ({
           type="submit" 
           className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-xl hover:bg-brand-700 transition-colors duration-200"
         >
-          {isEditMode ? 'Update Student' : 'Add Student'}
+          {isEditMode ? 'Update' : 'Save'}
         </button>
       </div>
     </form>
@@ -449,3 +660,5 @@ const TailwindFormRenderer: React.FC<TailwindFormRendererProps> = ({
 };
 
 export default TailwindFormRenderer;
+
+export { TailwindFormField };
