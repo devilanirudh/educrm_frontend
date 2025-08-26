@@ -460,7 +460,7 @@ const ExamsPage: React.FC = () => {
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-surface-600">View:</span>
-          <select className="text-sm border border-surface-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <select className="text-sm border border-surface-300 rounded-lg px-7 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500">
             <option>10 per page</option>
             <option>25 per page</option>
             <option>50 per page</option>

@@ -5,8 +5,8 @@ import { QueryParams } from '../types/api';
 const getBaseURL = (): string => {
   const isDevelopment = process.env.NODE_ENV === 'development';
   const baseURL = isDevelopment 
-    ? 'http://localhost:8000/api/v1'
-    : 'https://educrmbackend-production.up.railway.app/api/v1';
+    ? 'https://educrmbackend-production.up.railway.app/api/v1'
+    : 'http://localhost:8000/api/v1';
   
   console.log(`🌐 API Base URL: ${baseURL} (${isDevelopment ? 'Development' : 'Production'})`);
   return baseURL;

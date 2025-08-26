@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from 'react-query';
-import { 
-  MagnifyingGlassIcon, 
-  FunnelIcon, 
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "react-query";
+import {
+  MagnifyingGlassIcon,
+  FunnelIcon,
   PlusIcon,
   EllipsisVerticalIcon,
   EyeIcon,
@@ -13,34 +13,32 @@ import {
   XMarkIcon,
   CogIcon,
   AdjustmentsHorizontalIcon,
-  UserIcon
-} from '@heroicons/react/24/outline';
-import { useStudents } from '../../hooks/useStudents';
-import { useForm } from '../../hooks/useForm';
-import { studentsService, Student } from '../../services/students';
-import TailwindFormRenderer from '../../components/form-builder/TailwindFormRenderer';
-import SkeletonLoader from '../../components/common/SkeletonLoader';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../../store';
-import { startImpersonation } from '../../store/authSlice';
-import { authService } from '../../services/auth';
-import { tokenUtils } from '../../services/auth';
-
-
+  UserIcon,
+} from "@heroicons/react/24/outline";
+import { useStudents } from "../../hooks/useStudents";
+import { useForm } from "../../hooks/useForm";
+import { studentsService, Student } from "../../services/students";
+import TailwindFormRenderer from "../../components/form-builder/TailwindFormRenderer";
+import SkeletonLoader from "../../components/common/SkeletonLoader";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../../store";
+import { startImpersonation } from "../../store/authSlice";
+import { authService } from "../../services/auth";
+import { tokenUtils } from "../../services/auth";
 
 const TailwindStudentsPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
-  
+
   // Debug logging
-  console.log('🔍 StudentsPage - Current user:', user);
-  console.log('🔍 StudentsPage - User role:', user?.role);
-  
+  console.log("🔍 StudentsPage - Current user:", user);
+  console.log("🔍 StudentsPage - User role:", user?.role);
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [isFormOpen, setFormOpen] = useState(false);
@@ -54,28 +52,70 @@ const TailwindStudentsPage: React.FC = () => {
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
   const columnsMenuRef = useRef<HTMLDivElement>(null);
 
+  // ... other state variables
+
+  // State for the new "View Details" modal
+  const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [studentToView, setStudentToView] = useState<Student | null>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null); // Add this ref
+
   // Close columns menu when clicking outside
+  // useEffect(() => {
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     if (
+  //       columnsMenuRef.current &&
+  //       !columnsMenuRef.current.contains(event.target as Node)
+  //     ) {
+  //       setShowColumnsMenu(false);
+  //     }
+  //   };
+
+  //   document.addEventListener("mousedown", handleClickOutside);
+  //   return () => {
+  //     document.removeEventListener("mousedown", handleClickOutside);
+  //   };
+  // }, []);
+
+  // CHANGE THIS useEffect
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (columnsMenuRef.current && !columnsMenuRef.current.contains(event.target as Node)) {
+      // Close columns menu
+      if (
+        columnsMenuRef.current &&
+        !columnsMenuRef.current.contains(event.target as Node)
+      ) {
         setShowColumnsMenu(false);
+      }
+      // ADD THIS PART: Close user action menu
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowUserMenu(null);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, []); // The empty dependency array is correct
+
+  // ADD THIS FUNCTION
+  const handleViewDetails = (student: Student) => {
+    setStudentToView(student);
+    setDetailsModalOpen(true);
+    setShowUserMenu(null); // Close the actions menu
+  };
 
   // Use the actual API hooks
-  const { 
-    students, 
-    isStudentsLoading, 
-    studentsError, 
-    deleteStudent, 
+  const {
+    students,
+    isStudentsLoading,
+    studentsError,
+    deleteStudent,
     isDeletingStudent,
-    updateStudent
+    updateStudent,
   } = useStudents({
     page,
     per_page: rowsPerPage,
@@ -83,27 +123,57 @@ const TailwindStudentsPage: React.FC = () => {
     ...filters,
   });
 
-  const { formSchema, isFormSchemaLoading, formSchemaError, isFormSchemaError } = useForm('student_form');
+  const {
+    formSchema,
+    isFormSchemaLoading,
+    formSchemaError,
+    isFormSchemaError,
+  } = useForm("student_form");
 
-  const [tableVisibleColumns, setTableVisibleColumns] = useState<string[]>(['student', 'student_id', 'academic_year', 'roll_number', 'section', 'status', 'actions']);
+  const [tableVisibleColumns, setTableVisibleColumns] = useState<string[]>([
+    "student",
+    "student_id",
+    "academic_year",
+    "roll_number",
+    "section",
+    "status",
+    "actions",
+  ]);
 
   const visibleColumns = useMemo(() => {
     if (formSchema?.fields) {
-      return formSchema.fields.filter(field => field.is_visible_in_listing);
+      return formSchema.fields.filter((field) => field.is_visible_in_listing);
     }
     // Default columns if form schema is not available
     return [
-      { field_name: 'student_id', label: 'Student ID', is_visible_in_listing: true },
-      { field_name: 'academic_year', label: 'Academic Year', is_visible_in_listing: true },
-      { field_name: 'roll_number', label: 'Roll Number', is_visible_in_listing: true },
-      { field_name: 'section', label: 'Section', is_visible_in_listing: true },
+      {
+        field_name: "student_id",
+        label: "Student ID",
+        is_visible_in_listing: true,
+      },
+      {
+        field_name: "academic_year",
+        label: "Academic Year",
+        is_visible_in_listing: true,
+      },
+      {
+        field_name: "roll_number",
+        label: "Roll Number",
+        is_visible_in_listing: true,
+      },
+      { field_name: "section", label: "Section", is_visible_in_listing: true },
     ];
   }, [formSchema]);
 
   // Initialize table visible columns when form schema changes (only on first load)
   React.useEffect(() => {
     if (visibleColumns.length > 0 && tableVisibleColumns.length === 0) {
-      const allColumnIds = ['student', ...visibleColumns.map(col => col.field_name), 'status', 'actions'];
+      const allColumnIds = [
+        "student",
+        ...visibleColumns.map((col) => col.field_name),
+        "status",
+        "actions",
+      ];
       setTableVisibleColumns(allColumnIds);
     }
   }, [visibleColumns, tableVisibleColumns.length]);
@@ -112,36 +182,56 @@ const TailwindStudentsPage: React.FC = () => {
   React.useEffect(() => {
     if (students && !localStudents) {
       setLocalStudents(students);
-      console.log('Setting local students from React Query:', students);
+      console.log("Setting local students from React Query:", students);
     }
   }, [students, localStudents]);
 
   // Filter students based on search and filters
   const filteredStudents = useMemo(() => {
     // Handle both API response structures
-    const studentsData = localStudents?.students || (students as any)?.students || students?.data || [];
+    const studentsData =
+      localStudents?.students ||
+      (students as any)?.students ||
+      students?.data ||
+      [];
     return studentsData.filter((student: Student) => {
-      const matchesSearch = student.user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.user.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.student_id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch =
+        student.user.first_name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        student.user.last_name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        student.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.student_id.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
     });
   }, [localStudents, students, searchTerm]);
 
   // Get unique classes for filter
-  const classes = Array.from(new Set(
-    (localStudents?.students || (students as any)?.students || students?.data || []).map((student: Student) => student.current_class).filter(Boolean)
-  )) as string[];
+  const classes = Array.from(
+    new Set(
+      (
+        localStudents?.students ||
+        (students as any)?.students ||
+        students?.data ||
+        []
+      )
+        .map((student: Student) => student.current_class)
+        .filter(Boolean)
+    )
+  ) as string[];
 
   const getStatusBadge = (isActive: boolean) => {
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-        isActive 
-          ? 'bg-success-100 text-success-800' 
-          : 'bg-surface-100 text-surface-800'
-      }`}>
-        {isActive ? 'Active' : 'Inactive'}
+      <span
+        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+          isActive
+            ? "bg-success-100 text-success-800"
+            : "bg-surface-100 text-surface-800"
+        }`}
+      >
+        {isActive ? "Active" : "Inactive"}
       </span>
     );
   };
@@ -160,29 +250,29 @@ const TailwindStudentsPage: React.FC = () => {
     try {
       if (selectedStudent) {
         updateStudent({ id: selectedStudent.id, data });
-        setSuccessMessage('Student updated successfully!');
+        setSuccessMessage("Student updated successfully!");
       } else {
         // Use the dynamic form endpoint for new students
         const result = await studentsService.createStudentFromDynamicForm(data);
         // Invalidate the students query to refresh the list
-        queryClient.invalidateQueries('students');
+        queryClient.invalidateQueries("students");
         // Also refetch the data immediately
-        queryClient.refetchQueries('students');
+        queryClient.refetchQueries("students");
         // Update local state as fallback
         if (localStudents) {
           setLocalStudents({
             ...localStudents,
             students: [...localStudents.students, result.student],
-            total: localStudents.total + 1
+            total: localStudents.total + 1,
           });
         }
-        setSuccessMessage('Student created successfully!');
+        setSuccessMessage("Student created successfully!");
       }
       handleFormClose();
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to save student');
+      setError(err.message || "Failed to save student");
     }
   };
 
@@ -193,11 +283,14 @@ const TailwindStudentsPage: React.FC = () => {
     const formData: Record<string, any> = {};
 
     // Map form fields to student data
-    formSchema.fields.forEach(field => {
+    formSchema.fields.forEach((field) => {
       let value: any = undefined;
 
       // First check dynamic_data (custom form fields)
-      if (student.dynamic_data && student.dynamic_data[field.field_name] !== undefined) {
+      if (
+        student.dynamic_data &&
+        student.dynamic_data[field.field_name] !== undefined
+      ) {
         value = student.dynamic_data[field.field_name];
       }
       // Then check direct student properties
@@ -205,17 +298,20 @@ const TailwindStudentsPage: React.FC = () => {
         value = (student as any)[field.field_name];
       }
       // Finally check user properties for user-related fields
-      else if (student.user && (student.user as any)[field.field_name] !== undefined) {
+      else if (
+        student.user &&
+        (student.user as any)[field.field_name] !== undefined
+      ) {
         value = (student.user as any)[field.field_name];
       }
 
       // Only add the value if it's not undefined
       if (value !== undefined) {
         // Format date values for HTML date input (YYYY-MM-DD)
-        if (field.field_type === 'date' && value) {
+        if (field.field_type === "date" && value) {
           const date = new Date(value);
           if (!isNaN(date.getTime())) {
-            formData[field.field_name] = date.toISOString().split('T')[0];
+            formData[field.field_name] = date.toISOString().split("T")[0];
           } else {
             formData[field.field_name] = value;
           }
@@ -225,19 +321,19 @@ const TailwindStudentsPage: React.FC = () => {
       }
     });
 
-    console.log('🔍 Mapping student to form data:', {
+    console.log("🔍 Mapping student to form data:", {
       student,
-      formSchema: formSchema.fields.map(f => f.field_name),
-      mappedData: formData
+      formSchema: formSchema.fields.map((f) => f.field_name),
+      mappedData: formData,
     });
 
     return formData;
   };
 
   const handleEditStudent = (student: Student) => {
-    console.log('🔍 handleEditStudent called with student:', student);
+    console.log("🔍 handleEditStudent called with student:", student);
     const mappedData = mapStudentToFormData(student);
-    console.log('🔍 Mapped data for form:', mappedData);
+    console.log("🔍 Mapped data for form:", mappedData);
     setSelectedStudent(student);
     setFormOpen(true);
     setShowUserMenu(null);
@@ -258,22 +354,26 @@ const TailwindStudentsPage: React.FC = () => {
 
       // Update local state immediately for better UX
       if (localStudents?.students) {
-        const updatedStudents = localStudents.students.filter((s: Student) => s.id !== studentToDelete.id);
+        const updatedStudents = localStudents.students.filter(
+          (s: Student) => s.id !== studentToDelete.id
+        );
         setLocalStudents({
           ...localStudents,
           students: updatedStudents,
-          total: localStudents.total - 1
+          total: localStudents.total - 1,
         });
       }
 
-      setSuccessMessage(`Student ${studentToDelete.user.first_name} ${studentToDelete.user.last_name} has been successfully deactivated.`);
+      setSuccessMessage(
+        `Student ${studentToDelete.user.first_name} ${studentToDelete.user.last_name} has been successfully deactivated.`
+      );
       setDeleteDialogOpen(false);
       setStudentToDelete(null);
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to delete student');
+      setError(err.message || "Failed to delete student");
       setDeleteDialogOpen(false);
       setStudentToDelete(null);
     }
@@ -287,48 +387,60 @@ const TailwindStudentsPage: React.FC = () => {
   const handleBecomeUser = async (userId: number, userType: string) => {
     try {
       const response = await authService.impersonateUser(userId);
-      
-      console.log('🎭 Impersonation response:', response);
-      console.log('🎭 Response data structure:', {
+
+      console.log("🎭 Impersonation response:", response);
+      console.log("🎭 Response data structure:", {
         access_token: response.access_token,
         impersonated_user: response.impersonated_user,
         original_user: response.original_user,
-        session_id: response.session_id
+        session_id: response.session_id,
       });
-      
+
       // Store the impersonation session token
-      tokenUtils.setTokens(response.access_token, tokenUtils.getRefreshToken() || '');
-      
+      tokenUtils.setTokens(
+        response.access_token,
+        tokenUtils.getRefreshToken() || ""
+      );
+
       // Store original user data in localStorage for page refresh recovery
-      localStorage.setItem('originalUser', JSON.stringify(response.original_user));
-      localStorage.setItem('isImpersonating', 'true');
-      
+      localStorage.setItem(
+        "originalUser",
+        JSON.stringify(response.original_user)
+      );
+      localStorage.setItem("isImpersonating", "true");
+
       // Update Redux store with impersonated user data
       const impersonationAction = {
         impersonatedUser: response.impersonated_user,
         originalUser: response.original_user,
-        token: response.access_token
+        token: response.access_token,
       };
-      
-      console.log('🎭 Dispatching impersonation action:', impersonationAction);
-      console.log('🎭 Impersonated user data:', impersonationAction.impersonatedUser);
-      console.log('🎭 Original user data:', impersonationAction.originalUser);
-      
+
+      console.log("🎭 Dispatching impersonation action:", impersonationAction);
+      console.log(
+        "🎭 Impersonated user data:",
+        impersonationAction.impersonatedUser
+      );
+      console.log("🎭 Original user data:", impersonationAction.originalUser);
+
       dispatch(startImpersonation(impersonationAction));
-      
-      console.log('✅ Redux store updated with impersonated user:', response.impersonated_user);
-      
+
+      console.log(
+        "✅ Redux store updated with impersonated user:",
+        response.impersonated_user
+      );
+
       // Navigate to dashboard - the navigation should automatically update based on the new user role
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (error) {
-      console.error('Failed to impersonate user:', error);
-      setError('Failed to impersonate user. Please try again.');
+      console.error("Failed to impersonate user:", error);
+      setError("Failed to impersonate user. Please try again.");
     }
   };
 
   const handleEditForm = () => {
     // Navigate to advanced form builder
-    navigate('/form-builder/advanced?type=student');
+    navigate("/form-builder/advanced?type=student");
   };
 
   // Show form not found error with option to create new form
@@ -336,7 +448,9 @@ const TailwindStudentsPage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="bg-error-50 border border-error-200 rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-error-900 mb-4">Student Form Not Found</h2>
+          <h2 className="text-xl font-bold text-error-900 mb-4">
+            Student Form Not Found
+          </h2>
           <p className="text-error-700 mb-4">
             The default student form could not be loaded. This might be because:
           </p>
@@ -344,17 +458,21 @@ const TailwindStudentsPage: React.FC = () => {
             <li>The form hasn't been created yet</li>
             <li>There's a connection issue with the server</li>
           </ul>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div 
+            <div
               className="bg-white border border-surface-200 rounded-xl p-4 cursor-pointer hover:shadow-soft transition-shadow duration-200"
               onClick={handleEditForm}
             >
               <div className="flex items-center gap-3">
                 <CogIcon className="w-6 h-6 text-brand-600" />
                 <div>
-                  <h3 className="font-semibold text-surface-900">Edit Form Schema</h3>
-                  <p className="text-sm text-surface-600">Access the advanced form builder to modify the student form</p>
+                  <h3 className="font-semibold text-surface-900">
+                    Edit Form Schema
+                  </h3>
+                  <p className="text-sm text-surface-600">
+                    Access the advanced form builder to modify the student form
+                  </p>
                 </div>
               </div>
             </div>
@@ -364,31 +482,32 @@ const TailwindStudentsPage: React.FC = () => {
     );
   }
 
-
-
   if (studentsError) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-surface-900 mb-4">Error Loading Students</h2>
+          <h2 className="text-2xl font-bold text-surface-900 mb-4">
+            Error Loading Students
+          </h2>
           <p className="text-surface-600">Please try again later.</p>
         </div>
       </div>
     );
   }
 
-  const hasStudentsData = (localStudents?.students && localStudents.students.length > 0) || 
-                         ((students as any)?.students && (students as any).students.length > 0) ||
-                         (students?.data && students.data.length > 0);
+  const hasStudentsData =
+    (localStudents?.students && localStudents.students.length > 0) ||
+    ((students as any)?.students && (students as any).students.length > 0) ||
+    (students?.data && students.data.length > 0);
 
   // Debug logging
-  console.log('Students Debug:', {
+  console.log("Students Debug:", {
     students,
     localStudents,
     hasStudentsData,
     studentsData: students?.data,
     localStudentsData: localStudents?.students,
-    filteredStudentsLength: filteredStudents.length
+    filteredStudentsLength: filteredStudents.length,
   });
 
   return (
@@ -403,26 +522,28 @@ const TailwindStudentsPage: React.FC = () => {
         </div>
         <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-3">
           <div className="relative" ref={columnsMenuRef}>
-            <button 
+            <button
               className="inline-flex items-center px-4 py-2 bg-surface-100 text-surface-700 text-sm font-medium rounded-xl hover:bg-surface-200 transition-colors duration-200"
               onClick={() => setShowColumnsMenu(!showColumnsMenu)}
             >
               <AdjustmentsHorizontalIcon className="w-4 h-4 mr-2" />
               Columns
             </button>
-            
+
             {/* Column visibility menu */}
             {showColumnsMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
                 <div className="px-4 py-2 border-b border-surface-200">
-                  <p className="text-sm font-medium text-surface-900">Visible Columns</p>
+                  <p className="text-sm font-medium text-surface-900">
+                    Visible Columns
+                  </p>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {/* Base columns that are always visible */}
                   <div className="px-4 py-2">
                     <label className="flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={true}
                         disabled={true}
                         className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2 opacity-50"
@@ -430,32 +551,38 @@ const TailwindStudentsPage: React.FC = () => {
                       <span className="text-sm text-surface-700">Student</span>
                     </label>
                   </div>
-                  
+
                   {/* Dynamic columns */}
                   {visibleColumns.map((col) => (
                     <div key={col.field_name} className="px-4 py-2">
                       <label className="flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           checked={tableVisibleColumns.includes(col.field_name)}
                           onChange={() => {
-                            const newColumns = tableVisibleColumns.includes(col.field_name)
-                              ? tableVisibleColumns.filter(id => id !== col.field_name)
+                            const newColumns = tableVisibleColumns.includes(
+                              col.field_name
+                            )
+                              ? tableVisibleColumns.filter(
+                                  (id) => id !== col.field_name
+                                )
                               : [...tableVisibleColumns, col.field_name];
                             setTableVisibleColumns(newColumns);
                           }}
                           className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2"
                         />
-                        <span className="text-sm text-surface-700">{col.label}</span>
+                        <span className="text-sm text-surface-700">
+                          {col.label}
+                        </span>
                       </label>
                     </div>
                   ))}
-                  
+
                   {/* Status and Actions are always visible */}
                   <div className="px-4 py-2">
                     <label className="flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={true}
                         disabled={true}
                         className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2 opacity-50"
@@ -465,8 +592,8 @@ const TailwindStudentsPage: React.FC = () => {
                   </div>
                   <div className="px-4 py-2">
                     <label className="flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={true}
                         disabled={true}
                         className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2 opacity-50"
@@ -478,15 +605,15 @@ const TailwindStudentsPage: React.FC = () => {
               </div>
             )}
           </div>
-          
-          <button 
+
+          <button
             className="inline-flex items-center px-4 py-2 bg-surface-100 text-surface-700 text-sm font-medium rounded-xl hover:bg-surface-200 transition-colors duration-200"
             onClick={handleEditForm}
           >
             <CogIcon className="w-4 h-4 mr-2" />
             Edit Form
           </button>
-          <button 
+          <button
             className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors duration-200"
             onClick={handleAddStudent}
             disabled={isFormSchemaLoading}
@@ -502,7 +629,7 @@ const TailwindStudentsPage: React.FC = () => {
         <div className="bg-error-50 border border-error-200 rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <p className="text-error-700">{error}</p>
-            <button 
+            <button
               onClick={() => setError(null)}
               className="text-error-500 hover:text-error-700"
             >
@@ -517,7 +644,7 @@ const TailwindStudentsPage: React.FC = () => {
         <div className="bg-success-50 border border-success-200 rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <p className="text-success-700">{successMessage}</p>
-            <button 
+            <button
               onClick={() => setSuccessMessage(null)}
               className="text-success-500 hover:text-success-700"
             >
@@ -559,23 +686,25 @@ const TailwindStudentsPage: React.FC = () => {
           <div className="mt-6 pt-6 border-t border-surface-200">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">Status</label>
-                <select
-                  className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                >
+                <label className="block text-sm font-medium text-surface-700 mb-2">
+                  Status
+                </label>
+                <select className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                   <option value="all">All Status</option>
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">Class</label>
-                <select
-                  className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                >
+                <label className="block text-sm font-medium text-surface-700 mb-2">
+                  Class
+                </label>
+                <select className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                   <option value="all">All Classes</option>
                   {classes.map((cls) => (
-                    <option key={cls} value={cls}>{cls}</option>
+                    <option key={cls} value={cls}>
+                      {cls}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -587,11 +716,16 @@ const TailwindStudentsPage: React.FC = () => {
       {/* Results Summary */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-surface-600">
-          Showing {filteredStudents.length} of {(localStudents?.total || (students as any)?.total || students?.total || 0)} students
+          Showing {filteredStudents.length} of{" "}
+          {localStudents?.total ||
+            (students as any)?.total ||
+            students?.total ||
+            0}{" "}
+          students
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-surface-600">View:</span>
-          <select className="text-sm border border-surface-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <select className="text-sm border border-surface-300 rounded-lg px-7 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500">
             <option>10 per page</option>
             <option>25 per page</option>
             <option>50 per page</option>
@@ -612,9 +746,14 @@ const TailwindStudentsPage: React.FC = () => {
                     Student
                   </th>
                   {visibleColumns
-                    .filter(col => tableVisibleColumns.includes(col.field_name))
-                    .map(col => (
-                      <th key={col.field_name} className="px-6 py-3 text-left text-xs font-medium text-surface-500 uppercase tracking-wider">
+                    .filter((col) =>
+                      tableVisibleColumns.includes(col.field_name)
+                    )
+                    .map((col) => (
+                      <th
+                        key={col.field_name}
+                        className="px-6 py-3 text-left text-xs font-medium text-surface-500 uppercase tracking-wider"
+                      >
                         {col.label}
                       </th>
                     ))}
@@ -642,32 +781,47 @@ const TailwindStudentsPage: React.FC = () => {
                           <div className="text-sm font-medium text-surface-900">
                             {student.user.first_name} {student.user.last_name}
                           </div>
-                          <div className="text-sm text-surface-500">{student.user.email}</div>
+                          <div className="text-sm text-surface-500">
+                            {student.user.email}
+                          </div>
                         </div>
                       </div>
                     </td>
                     {visibleColumns
-                      .filter(col => tableVisibleColumns.includes(col.field_name))
-                      .map(col => (
-                        <td key={col.field_name} className="px-6 py-4 whitespace-nowrap text-sm text-surface-900">
+                      .filter((col) =>
+                        tableVisibleColumns.includes(col.field_name)
+                      )
+                      .map((col) => (
+                        <td
+                          key={col.field_name}
+                          className="px-6 py-4 whitespace-nowrap text-sm text-surface-900"
+                        >
                           {(() => {
                             let value;
                             // First check dynamic_data
-                            if (student.dynamic_data && student.dynamic_data[col.field_name] !== undefined) {
+                            if (
+                              student.dynamic_data &&
+                              student.dynamic_data[col.field_name] !== undefined
+                            ) {
                               value = student.dynamic_data[col.field_name];
                             }
                             // Then check direct student properties
-                            else if ((student as any)[col.field_name] !== undefined) {
+                            else if (
+                              (student as any)[col.field_name] !== undefined
+                            ) {
                               value = (student as any)[col.field_name];
                             }
                             // Finally check user properties for user-related fields
-                            else if (student.user && (student.user as any)[col.field_name] !== undefined) {
+                            else if (
+                              student.user &&
+                              (student.user as any)[col.field_name] !==
+                                undefined
+                            ) {
                               value = (student.user as any)[col.field_name];
+                            } else {
+                              value = "-";
                             }
-                            else {
-                              value = '-';
-                            }
-                            
+
                             // Convert to string to avoid React warnings
                             return String(value);
                           })()}
@@ -678,14 +832,18 @@ const TailwindStudentsPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="relative">
-                        <button 
+                        <button
                           className="text-surface-400 hover:text-surface-600"
-                          onClick={() => setShowUserMenu(showUserMenu === student.id ? null : student.id)}
+                          onClick={() =>
+                            setShowUserMenu(
+                              showUserMenu === student.id ? null : student.id
+                            )
+                          }
                         >
                           <EllipsisVerticalIcon className="w-4 h-4" />
                         </button>
-                        
-                        {showUserMenu === student.id && (
+
+                        {/* {showUserMenu === student.id && (
                           <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
                             <button
                               onClick={() => handleEditStudent(student)}
@@ -716,8 +874,49 @@ const TailwindStudentsPage: React.FC = () => {
                               Delete
                             </button>
                           </div>
-                        )}
+                        )} */}
                       </div>
+
+                      {showUserMenu === student.id && (
+                        <div
+                          ref={userMenuRef}
+                          className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50"
+                        >
+                          <button
+                            onClick={() => handleEditStudent(student)}
+                            className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
+                          >
+                            <PencilIcon className="w-4 h-4 mr-2" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleViewDetails(student)}
+                            className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
+                          >
+                            <EyeIcon className="w-4 h-4 mr-2" />
+                            View Details
+                          </button>
+                          {(user?.role === "super_admin" ||
+                            user?.role === "admin") && (
+                            <button
+                              onClick={() =>
+                                handleBecomeUser(student.user.id, "student")
+                              }
+                              className="w-full flex items-center px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 transition-colors duration-200 border-t border-surface-100"
+                            >
+                              <UserIcon className="w-4 h-4 mr-2" />
+                              Become Student
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDeleteStudent(student)}
+                            className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
+                          >
+                            <TrashIcon className="w-4 h-4 mr-2" />
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -727,188 +926,218 @@ const TailwindStudentsPage: React.FC = () => {
         </div>
       ) : (
         <div className="text-center py-12">
-          <h3 className="text-lg font-semibold text-surface-900 mb-2">No students found</h3>
+          <h3 className="text-lg font-semibold text-surface-900 mb-2">
+            No students found
+          </h3>
           <p className="text-surface-600">
-            {students?.data ? 'No students match your search criteria.' : 'Start by adding your first student.'}
+            {students?.data
+              ? "No students match your search criteria."
+              : "Start by adding your first student."}
           </p>
         </div>
       )}
 
       {/* Students Cards - Mobile */}
       <div className="lg:hidden space-y-4">
-        {isStudentsLoading ? (
-          // Mobile skeleton loader
-          Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200 animate-pulse">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-surface-200 mr-3"></div>
-                      <div className="h-6 w-32 bg-surface-200 rounded"></div>
+        {isStudentsLoading
+          ? // Mobile skeleton loader
+            Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200 animate-pulse"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 rounded-full bg-surface-200 mr-3"></div>
+                        <div className="h-6 w-32 bg-surface-200 rounded"></div>
+                      </div>
+                      <div className="h-6 w-16 bg-surface-200 rounded"></div>
                     </div>
-                    <div className="h-6 w-16 bg-surface-200 rounded"></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="h-4 w-12 bg-surface-200 rounded mb-1"></div>
+                        <div className="h-4 w-24 bg-surface-200 rounded"></div>
+                      </div>
+                      <div>
+                        <div className="h-4 w-12 bg-surface-200 rounded mb-1"></div>
+                        <div className="h-4 w-20 bg-surface-200 rounded"></div>
+                      </div>
+                      <div>
+                        <div className="h-4 w-16 bg-surface-200 rounded mb-1"></div>
+                        <div className="h-4 w-28 bg-surface-200 rounded"></div>
+                      </div>
+                      <div>
+                        <div className="h-4 w-20 bg-surface-200 rounded mb-1"></div>
+                        <div className="h-4 w-16 bg-surface-200 rounded"></div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="h-4 w-12 bg-surface-200 rounded mb-1"></div>
-                      <div className="h-4 w-24 bg-surface-200 rounded"></div>
-                    </div>
-                    <div>
-                      <div className="h-4 w-12 bg-surface-200 rounded mb-1"></div>
-                      <div className="h-4 w-20 bg-surface-200 rounded"></div>
-                    </div>
-                    <div>
-                      <div className="h-4 w-16 bg-surface-200 rounded mb-1"></div>
-                      <div className="h-4 w-28 bg-surface-200 rounded"></div>
-                    </div>
-                    <div>
-                      <div className="h-4 w-20 bg-surface-200 rounded mb-1"></div>
-                      <div className="h-4 w-16 bg-surface-200 rounded"></div>
-                    </div>
+                  <div className="ml-4">
+                    <div className="h-8 w-8 bg-surface-200 rounded"></div>
                   </div>
-                </div>
-                <div className="ml-4">
-                  <div className="h-8 w-8 bg-surface-200 rounded"></div>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          filteredStudents.map((student: Student) => (
-          <div key={student.id} className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center">
-                    <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center mr-3">
-                      <span className="text-sm font-medium text-brand-800">
-                        {student.user.first_name[0]}
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-surface-900">
-                      {student.user.first_name} {student.user.last_name}
-                    </h3>
-                  </div>
-                  {getStatusBadge(student.is_active)}
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-surface-500">Email</p>
-                    <p className="text-surface-900">{student.user.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-surface-500">Class</p>
-                    <p className="text-surface-900">{student.current_class?.name || 'N/A'}</p>
-                  </div>
-                  {visibleColumns.slice(0, 2).map(col => (
-                    <div key={col.field_name}>
-                      <p className="text-surface-500">{col.label}</p>
-                      <p className="text-surface-900">
-                        {(() => {
-                          let value;
-                          if (student.dynamic_data && student.dynamic_data[col.field_name] !== undefined) {
-                            value = student.dynamic_data[col.field_name];
-                          } else if ((student as any)[col.field_name] !== undefined) {
-                            value = (student as any)[col.field_name];
-                          } else if (student.user && (student.user as any)[col.field_name] !== undefined) {
-                            value = (student.user as any)[col.field_name];
-                          } else {
-                            value = '-';
-                          }
-                          return String(value);
-                        })()}
-                      </p>
-                    </div>
-                  ))}
                 </div>
               </div>
-              <div className="ml-4">
-                <button 
-                  className="p-2 text-surface-400 hover:text-surface-600 rounded-lg hover:bg-surface-100"
-                  onClick={() => setShowUserMenu(showUserMenu === student.id ? null : student.id)}
-                >
-                  <EllipsisVerticalIcon className="w-5 h-5" />
-                </button>
-                
-                {showUserMenu === student.id && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
+            ))
+          : filteredStudents.map((student: Student) => (
+              <div
+                key={student.id}
+                className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center mr-3">
+                          <span className="text-sm font-medium text-brand-800">
+                            {student.user.first_name[0]}
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-surface-900">
+                          {student.user.first_name} {student.user.last_name}
+                        </h3>
+                      </div>
+                      {getStatusBadge(student.is_active)}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-surface-500">Email</p>
+                        <p className="text-surface-900">{student.user.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-surface-500">Class</p>
+                        <p className="text-surface-900">
+                          {student.current_class?.name || "N/A"}
+                        </p>
+                      </div>
+                      {visibleColumns.slice(0, 2).map((col) => (
+                        <div key={col.field_name}>
+                          <p className="text-surface-500">{col.label}</p>
+                          <p className="text-surface-900">
+                            {(() => {
+                              let value;
+                              if (
+                                student.dynamic_data &&
+                                student.dynamic_data[col.field_name] !==
+                                  undefined
+                              ) {
+                                value = student.dynamic_data[col.field_name];
+                              } else if (
+                                (student as any)[col.field_name] !== undefined
+                              ) {
+                                value = (student as any)[col.field_name];
+                              } else if (
+                                student.user &&
+                                (student.user as any)[col.field_name] !==
+                                  undefined
+                              ) {
+                                value = (student.user as any)[col.field_name];
+                              } else {
+                                value = "-";
+                              }
+                              return String(value);
+                            })()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="ml-4">
                     <button
-                      onClick={() => handleEditStudent(student)}
-                      className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
+                      className="p-2 text-surface-400 hover:text-surface-600 rounded-lg hover:bg-surface-100"
+                      onClick={() =>
+                        setShowUserMenu(
+                          showUserMenu === student.id ? null : student.id
+                        )
+                      }
                     >
-                      <PencilIcon className="w-4 h-4 mr-2" />
-                      Edit
-                    </button>
-                    <button className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200">
-                      <EyeIcon className="w-4 h-4 mr-2" />
-                      View Details
+                      <EllipsisVerticalIcon className="w-5 h-5" />
                     </button>
 
-                    {(user?.role === 'super_admin' || user?.role === 'admin') && (
-                      <button
-                        onClick={() => handleBecomeUser(student.user.id, 'student')}
-                        className="w-full flex items-center px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 transition-colors duration-200 border-t border-gray-100"
-                      >
-                        <UserIcon className="w-4 h-4 mr-2" />
-                        Become Student
-                      </button>
+                    {showUserMenu === student.id && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
+                        <button
+                          onClick={() => handleEditStudent(student)}
+                          className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
+                        >
+                          <PencilIcon className="w-4 h-4 mr-2" />
+                          Edit
+                        </button>
+                        <button className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200">
+                          <EyeIcon className="w-4 h-4 mr-2" />
+                          View Details
+                        </button>
+
+                        {(user?.role === "super_admin" ||
+                          user?.role === "admin") && (
+                          <button
+                            onClick={() =>
+                              handleBecomeUser(student.user.id, "student")
+                            }
+                            className="w-full flex items-center px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 transition-colors duration-200 border-t border-gray-100"
+                          >
+                            <UserIcon className="w-4 h-4 mr-2" />
+                            Become Student
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteStudent(student)}
+                          className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
+                        >
+                          <TrashIcon className="w-4 h-4 mr-2" />
+                          Delete
+                        </button>
+                      </div>
                     )}
-                    <button
-                      onClick={() => handleDeleteStudent(student)}
-                      className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
-                    >
-                      <TrashIcon className="w-4 h-4 mr-2" />
-                      Delete
-                    </button>
                   </div>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
-        ))
-        )}
+            ))}
       </div>
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <button 
+          <button
             className={`px-3 py-2 text-sm font-medium rounded-lg border ${
-              (students as any)?.has_prev 
-                ? 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50' 
-                : 'text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed'
+              (students as any)?.has_prev
+                ? "text-surface-700 bg-white border-surface-300 hover:bg-surface-50"
+                : "text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed"
             }`}
             disabled={!(students as any)?.has_prev}
             onClick={() => setPage(page - 1)}
           >
             Previous
           </button>
-          
+
           {/* Page numbers */}
-          {Array.from({ length: Math.min(5, (students as any)?.pages || 1) }, (_, i) => {
-            const pageNum = i + 1;
-            const isCurrentPage = pageNum === ((students as any)?.page || 1);
-            return (
-              <button
-                key={pageNum}
-                className={`px-3 py-2 text-sm font-medium rounded-lg border ${
-                  isCurrentPage
-                    ? 'text-white bg-brand-600 border-brand-600'
-                    : 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50'
-                }`}
-                onClick={() => setPage(pageNum)}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
-          
-          <button 
+          {Array.from(
+            { length: Math.min(5, (students as any)?.pages || 1) },
+            (_, i) => {
+              const pageNum = i + 1;
+              const isCurrentPage = pageNum === ((students as any)?.page || 1);
+              return (
+                <button
+                  key={pageNum}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg border ${
+                    isCurrentPage
+                      ? "text-white bg-brand-600 border-brand-600"
+                      : "text-surface-700 bg-white border-surface-300 hover:bg-surface-50"
+                  }`}
+                  onClick={() => setPage(pageNum)}
+                >
+                  {pageNum}
+                </button>
+              );
+            }
+          )}
+
+          <button
             className={`px-3 py-2 text-sm font-medium rounded-lg border ${
-              (students as any)?.has_next 
-                ? 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50' 
-                : 'text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed'
+              (students as any)?.has_next
+                ? "text-surface-700 bg-white border-surface-300 hover:bg-surface-50"
+                : "text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed"
             }`}
             disabled={!(students as any)?.has_next}
             onClick={() => setPage(page + 1)}
@@ -924,10 +1153,9 @@ const TailwindStudentsPage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-surface-900">
-                {selectedStudent 
+                {selectedStudent
                   ? `Edit Student - ${selectedStudent.user.first_name} ${selectedStudent.user.last_name}`
-                  : 'Add New Student'
-                }
+                  : "Add New Student"}
               </h3>
               <button
                 onClick={handleFormClose}
@@ -936,12 +1164,16 @@ const TailwindStudentsPage: React.FC = () => {
                 <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
-            
+
             {formSchema ? (
               <TailwindFormRenderer
                 schema={formSchema}
                 onSubmit={handleFormSave}
-                initialData={selectedStudent ? mapStudentToFormData(selectedStudent) : undefined}
+                initialData={
+                  selectedStudent
+                    ? mapStudentToFormData(selectedStudent)
+                    : undefined
+                }
                 onCancel={handleFormClose}
                 isEditMode={!!selectedStudent}
               />
@@ -958,9 +1190,15 @@ const TailwindStudentsPage: React.FC = () => {
       {isDeleteDialogOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-surface-900 mb-4">Delete Student</h3>
+            <h3 className="text-lg font-semibold text-surface-900 mb-4">
+              Delete Student
+            </h3>
             <p className="text-surface-600 mb-6">
-              Are you sure you want to delete {studentToDelete ? `${studentToDelete.user.first_name} ${studentToDelete.user.last_name}` : 'this student'}? This action cannot be undone.
+              Are you sure you want to delete{" "}
+              {studentToDelete
+                ? `${studentToDelete.user.first_name} ${studentToDelete.user.last_name}`
+                : "this student"}
+              ? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
@@ -974,7 +1212,109 @@ const TailwindStudentsPage: React.FC = () => {
                 disabled={isDeletingStudent}
                 className="px-4 py-2 text-sm font-medium text-white bg-error-600 rounded-lg hover:bg-error-700 disabled:opacity-50"
               >
-                {isDeletingStudent ? 'Deleting...' : 'Delete'}
+                {isDeletingStudent ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Student Details Modal */}
+      {isDetailsModalOpen && studentToView && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between mb-6 pb-4 border-b border-surface-200">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 h-12 w-12">
+                  <div className="h-12 w-12 rounded-full bg-brand-100 flex items-center justify-center">
+                    <span className="text-xl font-medium text-brand-800">
+                      {studentToView.user.first_name[0]}
+                    </span>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-lg font-semibold text-surface-900">
+                    {studentToView.user.first_name}{" "}
+                    {studentToView.user.last_name}
+                  </h3>
+                  <p className="text-sm text-surface-500">
+                    {studentToView.user.email}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDetailsModalOpen(false)}
+                className="text-surface-400 hover:text-surface-600"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body - Student Details */}
+            <div className="space-y-4">
+              <h4 className="text-md font-medium text-surface-800">
+                All Student Information
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                {/* Dynamically render all fields from the form schema */}
+                {formSchema?.fields.map((field) => {
+                  // Logic to find the value, similar to your table rendering
+                  let value: any = "N/A"; // Default value
+                  if (
+                    studentToView.dynamic_data &&
+                    studentToView.dynamic_data[field.field_name] !== undefined
+                  ) {
+                    value = studentToView.dynamic_data[field.field_name];
+                  } else if (
+                    (studentToView as any)[field.field_name] !== undefined
+                  ) {
+                    value = (studentToView as any)[field.field_name];
+                  } else if (
+                    studentToView.user &&
+                    (studentToView.user as any)[field.field_name] !== undefined
+                  ) {
+                    value = (studentToView.user as any)[field.field_name];
+                  }
+
+                  // Format boolean values for readability
+                  if (typeof value === "boolean") {
+                    value = value ? "Yes" : "No";
+                  }
+
+                  // Don't render if value is empty
+                  if (value === "N/A" || value === "" || value === null) {
+                    return null;
+                  }
+
+                  return (
+                    <div
+                      key={field.field_name}
+                      className="border-b border-surface-200 py-2"
+                    >
+                      <p className="font-medium text-surface-600">
+                        {field.label}
+                      </p>
+                      <p className="text-surface-900">{String(value)}</p>
+                    </div>
+                  );
+                })}
+                {/* Also display the status */}
+                <div className="border-b border-surface-200 py-2">
+                  <p className="font-medium text-surface-600">Status</p>
+                  <p className="text-surface-900">
+                    {studentToView.is_active ? "Active" : "Inactive"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end mt-6 pt-4 border-t border-surface-200">
+              <button
+                onClick={() => setDetailsModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-surface-700 bg-surface-100 rounded-lg hover:bg-surface-200"
+              >
+                Close
               </button>
             </div>
           </div>

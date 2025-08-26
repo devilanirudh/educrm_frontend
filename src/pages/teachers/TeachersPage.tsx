@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from 'react-query';
-import { 
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "react-query";
+import {
   MagnifyingGlassIcon,
   PlusIcon,
   FunnelIcon,
@@ -12,28 +12,28 @@ import {
   TrashIcon,
   XMarkIcon,
   UserIcon,
-} from '@heroicons/react/24/outline';
-import { teachersService, Teacher } from '../../services/teachers';
-import { useTeachers } from '../../hooks/useTeachers';
-import { useForm } from '../../hooks/useForm';
-import TailwindFormRenderer from '../../components/form-builder/TailwindFormRenderer';
-import SkeletonLoader from '../../components/common/SkeletonLoader';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../../store';
-import { startImpersonation } from '../../store/authSlice';
-import { authService } from '../../services/auth';
-import { tokenUtils } from '../../services/auth';
+} from "@heroicons/react/24/outline";
+import { teachersService, Teacher } from "../../services/teachers";
+import { useTeachers } from "../../hooks/useTeachers";
+import { useForm } from "../../hooks/useForm";
+import TailwindFormRenderer from "../../components/form-builder/TailwindFormRenderer";
+import SkeletonLoader from "../../components/common/SkeletonLoader";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../../store";
+import { startImpersonation } from "../../store/authSlice";
+import { authService } from "../../services/auth";
+import { tokenUtils } from "../../services/auth";
 
 const TeachersPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
-  
+
   // State variables
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -46,20 +46,20 @@ const TeachersPage: React.FC = () => {
   const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
   const [tableVisibleColumns, setTableVisibleColumns] = useState<string[]>([]);
-  
+
   // Refs for click outside detection
   const columnsMenuRef = useRef<HTMLDivElement>(null);
 
   // Hooks
-  const { 
-    teachers, 
-    isTeachersLoading, 
-    teachersError, 
-    refetchTeachers, 
-    createTeacher, 
-    updateTeacher, 
-    deleteTeacher, 
-    isDeletingTeacher 
+  const {
+    teachers,
+    isTeachersLoading,
+    teachersError,
+    refetchTeachers,
+    createTeacher,
+    updateTeacher,
+    deleteTeacher,
+    isDeletingTeacher,
   } = useTeachers({
     page,
     per_page: rowsPerPage,
@@ -67,25 +67,40 @@ const TeachersPage: React.FC = () => {
     ...filters,
   });
 
-  const { formSchema, isFormSchemaLoading, formSchemaError } = useForm('teacher_form');
+  const { formSchema, isFormSchemaLoading, formSchemaError } =
+    useForm("teacher_form");
 
   // Visible columns configuration
   const visibleColumns = useMemo(() => {
     if (formSchema?.fields) {
-      return formSchema.fields.filter(field => field.is_visible_in_listing);
+      return formSchema.fields.filter((field) => field.is_visible_in_listing);
     }
     // Default columns if form schema is not available
     return [
-      { field_name: 'employee_id', label: 'Employee ID', is_visible_in_listing: true },
-      { field_name: 'department', label: 'Department', is_visible_in_listing: true },
-      { field_name: 'specialization', label: 'Specialization', is_visible_in_listing: true },
+      {
+        field_name: "employee_id",
+        label: "Employee ID",
+        is_visible_in_listing: true,
+      },
+      {
+        field_name: "department",
+        label: "Department",
+        is_visible_in_listing: true,
+      },
+      {
+        field_name: "specialization",
+        label: "Specialization",
+        is_visible_in_listing: true,
+      },
     ];
   }, [formSchema]);
 
   // Initialize table visible columns
   useEffect(() => {
     if (visibleColumns.length > 0 && tableVisibleColumns.length === 0) {
-      const defaultColumns = visibleColumns.slice(0, 4).map(col => col.field_name);
+      const defaultColumns = visibleColumns
+        .slice(0, 4)
+        .map((col) => col.field_name);
       setTableVisibleColumns(defaultColumns);
     }
   }, [visibleColumns, tableVisibleColumns.length]);
@@ -100,13 +115,16 @@ const TeachersPage: React.FC = () => {
   // Click outside detection for columns menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (columnsMenuRef.current && !columnsMenuRef.current.contains(event.target as Node)) {
+      if (
+        columnsMenuRef.current &&
+        !columnsMenuRef.current.contains(event.target as Node)
+      ) {
         setShowColumnsMenu(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Filter teachers based on search term
@@ -114,13 +132,18 @@ const TeachersPage: React.FC = () => {
     if (!searchTerm) {
       return localTeachers?.teachers || teachers?.data || [];
     }
-    
+
     const teachersData = localTeachers?.teachers || teachers?.data || [];
-    return teachersData.filter((teacher: Teacher) =>
-      teacher.user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.user.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.employee_id.toLowerCase().includes(searchTerm.toLowerCase())
+    return teachersData.filter(
+      (teacher: Teacher) =>
+        teacher.user.first_name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        teacher.user.last_name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        teacher.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        teacher.employee_id.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, localTeachers, teachers]);
 
@@ -148,34 +171,34 @@ const TeachersPage: React.FC = () => {
   };
 
   const handleFormSave = async (data: any) => {
-    console.log('Form data being saved:', data);
-    console.log('Form data keys:', Object.keys(data));
-    console.log('class_assignments in data:', data.class_assignments);
+    console.log("Form data being saved:", data);
+    console.log("Form data keys:", Object.keys(data));
+    console.log("class_assignments in data:", data.class_assignments);
     try {
       if (selectedTeacher) {
         // For updates, wrap the form data in dynamic_data
         const updateData = {
-          dynamic_data: data
+          dynamic_data: data,
         };
         updateTeacher({ id: selectedTeacher.id, data: updateData });
-        setSuccessMessage('Teacher updated successfully!');
+        setSuccessMessage("Teacher updated successfully!");
       } else {
         const result = await teachersService.createTeacherFromDynamicForm(data);
-        queryClient.invalidateQueries('teachers');
-        queryClient.refetchQueries('teachers');
+        queryClient.invalidateQueries("teachers");
+        queryClient.refetchQueries("teachers");
         if (localTeachers) {
           setLocalTeachers({
             ...localTeachers,
             teachers: [...localTeachers.teachers, result.teacher],
-            total: localTeachers.total + 1
+            total: localTeachers.total + 1,
           });
         }
-        setSuccessMessage('Teacher created successfully!');
+        setSuccessMessage("Teacher created successfully!");
       }
       handleFormClose();
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to save teacher');
+      setError(err.message || "Failed to save teacher");
     }
   };
 
@@ -187,21 +210,25 @@ const TeachersPage: React.FC = () => {
       await deleteTeacher(teacherToDelete.id);
 
       if (localTeachers?.teachers) {
-        const updatedTeachers = localTeachers.teachers.filter((t: Teacher) => t.id !== teacherToDelete.id);
+        const updatedTeachers = localTeachers.teachers.filter(
+          (t: Teacher) => t.id !== teacherToDelete.id
+        );
         setLocalTeachers({
           ...localTeachers,
           teachers: updatedTeachers,
-          total: localTeachers.total - 1
+          total: localTeachers.total - 1,
         });
       }
 
-      setSuccessMessage(`Teacher ${teacherToDelete.user.first_name} ${teacherToDelete.user.last_name} has been successfully deactivated.`);
+      setSuccessMessage(
+        `Teacher ${teacherToDelete.user.first_name} ${teacherToDelete.user.last_name} has been successfully deactivated.`
+      );
       setIsDeleteDialogOpen(false);
       setTeacherToDelete(null);
 
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to delete teacher');
+      setError(err.message || "Failed to delete teacher");
       setIsDeleteDialogOpen(false);
       setTeacherToDelete(null);
     }
@@ -215,30 +242,41 @@ const TeachersPage: React.FC = () => {
   const handleBecomeUser = async (userId: number, userType: string) => {
     try {
       const response = await authService.impersonateUser(userId);
-      
-      console.log('🎭 Impersonation response:', response);
-      
+
+      console.log("🎭 Impersonation response:", response);
+
       // Store the impersonation session token
-      tokenUtils.setTokens(response.access_token, tokenUtils.getRefreshToken() || '');
-      
+      tokenUtils.setTokens(
+        response.access_token,
+        tokenUtils.getRefreshToken() || ""
+      );
+
       // Store original user data in localStorage for page refresh recovery
-      localStorage.setItem('originalUser', JSON.stringify(response.original_user));
-      localStorage.setItem('isImpersonating', 'true');
-      
+      localStorage.setItem(
+        "originalUser",
+        JSON.stringify(response.original_user)
+      );
+      localStorage.setItem("isImpersonating", "true");
+
       // Update Redux store with impersonated user data
-      dispatch(startImpersonation({
-        impersonatedUser: response.impersonated_user,
-        originalUser: response.original_user,
-        token: response.access_token
-      }));
-      
-      console.log('✅ Redux store updated with impersonated user:', response.impersonated_user);
-      
+      dispatch(
+        startImpersonation({
+          impersonatedUser: response.impersonated_user,
+          originalUser: response.original_user,
+          token: response.access_token,
+        })
+      );
+
+      console.log(
+        "✅ Redux store updated with impersonated user:",
+        response.impersonated_user
+      );
+
       // Navigate to dashboard - the navigation should automatically update based on the new user role
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (error) {
-      console.error('Failed to impersonate user:', error);
-      setError('Failed to impersonate user. Please try again.');
+      console.error("Failed to impersonate user:", error);
+      setError("Failed to impersonate user. Please try again.");
     }
   };
 
@@ -248,22 +286,28 @@ const TeachersPage: React.FC = () => {
 
     const formData: Record<string, any> = {};
 
-    formSchema.fields.forEach(field => {
+    formSchema.fields.forEach((field) => {
       let value: any = undefined;
 
-      if (teacher.dynamic_data && teacher.dynamic_data[field.field_name] !== undefined) {
+      if (
+        teacher.dynamic_data &&
+        teacher.dynamic_data[field.field_name] !== undefined
+      ) {
         value = teacher.dynamic_data[field.field_name];
       } else if ((teacher as any)[field.field_name] !== undefined) {
         value = (teacher as any)[field.field_name];
-      } else if (teacher.user && (teacher.user as any)[field.field_name] !== undefined) {
+      } else if (
+        teacher.user &&
+        (teacher.user as any)[field.field_name] !== undefined
+      ) {
         value = (teacher.user as any)[field.field_name];
       }
 
       // Always include the field in formData, even if undefined
-      if (field.field_type === 'date' && value) {
+      if (field.field_type === "date" && value) {
         const date = new Date(value);
         if (!isNaN(date.getTime())) {
-          formData[field.field_name] = date.toISOString().split('T')[0];
+          formData[field.field_name] = date.toISOString().split("T")[0];
         } else {
           formData[field.field_name] = value;
         }
@@ -278,31 +322,43 @@ const TeachersPage: React.FC = () => {
   // Status badge component
   const getStatusBadge = (isActive: boolean) => {
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        isActive 
-          ? 'bg-success-100 text-success-800' 
-          : 'bg-surface-100 text-surface-800'
-      }`}>
-        {isActive ? 'Active' : 'Inactive'}
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          isActive
+            ? "bg-success-100 text-success-800"
+            : "bg-surface-100 text-surface-800"
+        }`}
+      >
+        {isActive ? "Active" : "Inactive"}
       </span>
     );
   };
 
   // Departments for filter (you can make this dynamic later)
-  const departments = ['Mathematics', 'Science', 'English', 'History', 'Computer Science', 'Physical Education'];
+  const departments = [
+    "Mathematics",
+    "Science",
+    "English",
+    "History",
+    "Computer Science",
+    "Physical Education",
+  ];
 
   // Show form not found error with option to create new form
   if (formSchemaError && !isFormSchemaLoading) {
     return (
       <div className="p-6">
         <div className="bg-error-50 border border-error-200 rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-error-900 mb-2">Teacher Form Not Found</h2>
+          <h2 className="text-xl font-bold text-error-900 mb-2">
+            Teacher Form Not Found
+          </h2>
           <p className="text-error-700 mb-4">
-            The default teacher form could not be loaded. This might be because the form hasn't been created yet
-            or there's a connection issue with the server.
+            The default teacher form could not be loaded. This might be because
+            the form hasn't been created yet or there's a connection issue with
+            the server.
           </p>
           <button
-            onClick={() => navigate('/form-builder/advanced?type=teacher')}
+            onClick={() => navigate("/form-builder/advanced?type=teacher")}
             className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors duration-200"
           >
             <PencilIcon className="w-4 h-4 mr-2" />
@@ -320,31 +376,34 @@ const TeachersPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-surface-900">Teachers</h1>
           <p className="mt-1 text-sm text-surface-600">
-            Manage teacher information, assignments, and professional development.
+            Manage teacher information, assignments, and professional
+            development.
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-3">
           <div className="relative" ref={columnsMenuRef}>
-            <button 
+            <button
               className="inline-flex items-center px-4 py-2 bg-surface-100 text-surface-700 text-sm font-medium rounded-xl hover:bg-surface-200 transition-colors duration-200"
               onClick={() => setShowColumnsMenu(!showColumnsMenu)}
             >
               <AdjustmentsHorizontalIcon className="w-4 h-4 mr-2" />
               Columns
             </button>
-            
+
             {/* Column visibility menu */}
             {showColumnsMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
                 <div className="px-4 py-2 border-b border-surface-200">
-                  <p className="text-sm font-medium text-surface-900">Visible Columns</p>
+                  <p className="text-sm font-medium text-surface-900">
+                    Visible Columns
+                  </p>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {/* Base columns that are always visible */}
                   <div className="px-4 py-2">
                     <label className="flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={true}
                         disabled={true}
                         className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2 opacity-50"
@@ -352,32 +411,38 @@ const TeachersPage: React.FC = () => {
                       <span className="text-sm text-surface-700">Teacher</span>
                     </label>
                   </div>
-                  
+
                   {/* Dynamic columns */}
                   {visibleColumns.map((col) => (
                     <div key={col.field_name} className="px-4 py-2">
                       <label className="flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           checked={tableVisibleColumns.includes(col.field_name)}
                           onChange={() => {
-                            const newColumns = tableVisibleColumns.includes(col.field_name)
-                              ? tableVisibleColumns.filter(id => id !== col.field_name)
+                            const newColumns = tableVisibleColumns.includes(
+                              col.field_name
+                            )
+                              ? tableVisibleColumns.filter(
+                                  (id) => id !== col.field_name
+                                )
                               : [...tableVisibleColumns, col.field_name];
                             setTableVisibleColumns(newColumns);
                           }}
                           className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2"
                         />
-                        <span className="text-sm text-surface-700">{col.label}</span>
+                        <span className="text-sm text-surface-700">
+                          {col.label}
+                        </span>
                       </label>
                     </div>
                   ))}
-                  
+
                   {/* Status and Actions are always visible */}
                   <div className="px-4 py-2">
                     <label className="flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={true}
                         disabled={true}
                         className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2 opacity-50"
@@ -387,8 +452,8 @@ const TeachersPage: React.FC = () => {
                   </div>
                   <div className="px-4 py-2">
                     <label className="flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={true}
                         disabled={true}
                         className="rounded border-surface-300 text-brand-600 focus:ring-brand-500 mr-2 opacity-50"
@@ -402,7 +467,7 @@ const TeachersPage: React.FC = () => {
           </div>
 
           <button
-            onClick={() => navigate('/form-builder/advanced?type=teacher')}
+            onClick={() => navigate("/form-builder/advanced?type=teacher")}
             className="inline-flex items-center px-4 py-2 bg-surface-100 text-surface-700 text-sm font-medium rounded-xl hover:bg-surface-200 transition-colors duration-200"
           >
             <PencilIcon className="w-4 h-4 mr-2" />
@@ -424,7 +489,7 @@ const TeachersPage: React.FC = () => {
         <div className="bg-error-50 border border-error-200 rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <p className="text-error-700">{error}</p>
-            <button 
+            <button
               onClick={() => setError(null)}
               className="text-error-500 hover:text-error-700"
             >
@@ -439,7 +504,7 @@ const TeachersPage: React.FC = () => {
         <div className="bg-success-50 border border-success-200 rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <p className="text-success-700">{successMessage}</p>
-            <button 
+            <button
               onClick={() => setSuccessMessage(null)}
               className="text-success-500 hover:text-success-700"
             >
@@ -481,23 +546,25 @@ const TeachersPage: React.FC = () => {
           <div className="mt-6 pt-6 border-t border-surface-200">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">Status</label>
-                <select
-                  className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                >
+                <label className="block text-sm font-medium text-surface-700 mb-2">
+                  Status
+                </label>
+                <select className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                   <option value="all">All Status</option>
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">Department</label>
-                <select
-                  className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                >
+                <label className="block text-sm font-medium text-surface-700 mb-2">
+                  Department
+                </label>
+                <select className="w-full px-3 py-2 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                   <option value="all">All Departments</option>
                   {departments.map((dept) => (
-                    <option key={dept} value={dept}>{dept}</option>
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -509,11 +576,16 @@ const TeachersPage: React.FC = () => {
       {/* Results Summary */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-surface-600">
-          Showing {filteredTeachers.length} of {(localTeachers?.total || (teachers as any)?.total || teachers?.total || 0)} teachers
+          Showing {filteredTeachers.length} of{" "}
+          {localTeachers?.total ||
+            (teachers as any)?.total ||
+            teachers?.total ||
+            0}{" "}
+          teachers
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-surface-600">View:</span>
-          <select className="text-sm border border-surface-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <select className="text-sm border border-surface-300 rounded-lg px-7 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500">
             <option>10 per page</option>
             <option>25 per page</option>
             <option>50 per page</option>
@@ -522,7 +594,7 @@ const TeachersPage: React.FC = () => {
       </div>
 
       {/* Teachers Table - Desktop */}
-        {isTeachersLoading ? (
+      {isTeachersLoading ? (
         <SkeletonLoader rows={8} />
       ) : filteredTeachers.length > 0 ? (
         <div className="hidden lg:block bg-white rounded-2xl shadow-soft border border-surface-200 overflow-hidden">
@@ -534,9 +606,14 @@ const TeachersPage: React.FC = () => {
                     Teacher
                   </th>
                   {visibleColumns
-                    .filter(col => tableVisibleColumns.includes(col.field_name))
-                    .map(col => (
-                      <th key={col.field_name} className="px-6 py-3 text-left text-xs font-medium text-surface-500 uppercase tracking-wider">
+                    .filter((col) =>
+                      tableVisibleColumns.includes(col.field_name)
+                    )
+                    .map((col) => (
+                      <th
+                        key={col.field_name}
+                        className="px-6 py-3 text-left text-xs font-medium text-surface-500 uppercase tracking-wider"
+                      >
                         {col.label}
                       </th>
                     ))}
@@ -564,35 +641,50 @@ const TeachersPage: React.FC = () => {
                           <div className="text-sm font-medium text-surface-900">
                             {teacher.user.first_name} {teacher.user.last_name}
                           </div>
-                          <div className="text-sm text-surface-500">{teacher.user.email}</div>
+                          <div className="text-sm text-surface-500">
+                            {teacher.user.email}
+                          </div>
                         </div>
                       </div>
                     </td>
                     {visibleColumns
-                      .filter(col => tableVisibleColumns.includes(col.field_name))
-                      .map(col => (
-                        <td key={col.field_name} className="px-6 py-4 whitespace-nowrap text-sm text-surface-900">
-                        {(() => {
-                          let value;
-                          // First check dynamic_data
-                          if (teacher.dynamic_data && teacher.dynamic_data[col.field_name] !== undefined) {
-                            value = teacher.dynamic_data[col.field_name];
-                          }
-                          // Then check direct teacher properties
-                          else if ((teacher as any)[col.field_name] !== undefined) {
-                            value = (teacher as any)[col.field_name];
-                          }
-                          // Finally check user properties for user-related fields
-                          else if (teacher.user && (teacher.user as any)[col.field_name] !== undefined) {
-                            value = (teacher.user as any)[col.field_name];
-                          }
-                          else {
-                            value = '-';
-                          }
+                      .filter((col) =>
+                        tableVisibleColumns.includes(col.field_name)
+                      )
+                      .map((col) => (
+                        <td
+                          key={col.field_name}
+                          className="px-6 py-4 whitespace-nowrap text-sm text-surface-900"
+                        >
+                          {(() => {
+                            let value;
+                            // First check dynamic_data
+                            if (
+                              teacher.dynamic_data &&
+                              teacher.dynamic_data[col.field_name] !== undefined
+                            ) {
+                              value = teacher.dynamic_data[col.field_name];
+                            }
+                            // Then check direct teacher properties
+                            else if (
+                              (teacher as any)[col.field_name] !== undefined
+                            ) {
+                              value = (teacher as any)[col.field_name];
+                            }
+                            // Finally check user properties for user-related fields
+                            else if (
+                              teacher.user &&
+                              (teacher.user as any)[col.field_name] !==
+                                undefined
+                            ) {
+                              value = (teacher.user as any)[col.field_name];
+                            } else {
+                              value = "-";
+                            }
 
-                          // Convert to string to avoid React warnings
-                          return String(value);
-                        })()}
+                            // Convert to string to avoid React warnings
+                            return String(value);
+                          })()}
                         </td>
                       ))}
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -600,13 +692,17 @@ const TeachersPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="relative">
-                        <button 
+                        <button
                           className="text-surface-400 hover:text-surface-600"
-                          onClick={() => setShowUserMenu(showUserMenu === teacher.id ? null : teacher.id)}
+                          onClick={() =>
+                            setShowUserMenu(
+                              showUserMenu === teacher.id ? null : teacher.id
+                            )
+                          }
                         >
                           <EllipsisVerticalIcon className="w-4 h-4" />
                         </button>
-                        
+
                         {showUserMenu === teacher.id && (
                           <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
                             <button
@@ -621,9 +717,12 @@ const TeachersPage: React.FC = () => {
                               View Details
                             </button>
 
-                            {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                            {(user?.role === "super_admin" ||
+                              user?.role === "admin") && (
                               <button
-                                onClick={() => handleBecomeUser(teacher.user.id, 'teacher')}
+                                onClick={() =>
+                                  handleBecomeUser(teacher.user.id, "teacher")
+                                }
                                 className="w-full flex items-center px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 transition-colors duration-200 border-t border-gray-100"
                               >
                                 <UserIcon className="w-4 h-4 mr-2" />
@@ -649,9 +748,13 @@ const TeachersPage: React.FC = () => {
         </div>
       ) : (
         <div className="hidden lg:block bg-white rounded-2xl shadow-soft border border-surface-200 p-12 text-center">
-          <h3 className="text-lg font-medium text-surface-900 mb-2">No teachers found</h3>
+          <h3 className="text-lg font-medium text-surface-900 mb-2">
+            No teachers found
+          </h3>
           <p className="text-surface-600 mb-6">
-            {teachers?.data ? 'No teachers match your search criteria.' : 'Start by adding your first teacher.'}
+            {teachers?.data
+              ? "No teachers match your search criteria."
+              : "Start by adding your first teacher."}
           </p>
           <button
             onClick={handleAddTeacher}
@@ -665,179 +768,205 @@ const TeachersPage: React.FC = () => {
 
       {/* Teachers Cards - Mobile */}
       <div className="lg:hidden space-y-4">
-        {isTeachersLoading ? (
-          // Mobile skeleton loader
-          Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200 animate-pulse">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-surface-200 mr-3"></div>
-                      <div className="h-6 w-32 bg-surface-200 rounded"></div>
+        {isTeachersLoading
+          ? // Mobile skeleton loader
+            Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200 animate-pulse"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 rounded-full bg-surface-200 mr-3"></div>
+                        <div className="h-6 w-32 bg-surface-200 rounded"></div>
+                      </div>
+                      <div className="h-6 w-16 bg-surface-200 rounded"></div>
                     </div>
-                    <div className="h-6 w-16 bg-surface-200 rounded"></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="h-4 w-12 bg-surface-200 rounded mb-1"></div>
+                        <div className="h-4 w-24 bg-surface-200 rounded"></div>
+                      </div>
+                      <div>
+                        <div className="h-4 w-12 bg-surface-200 rounded mb-1"></div>
+                        <div className="h-4 w-20 bg-surface-200 rounded"></div>
+                      </div>
+                      <div>
+                        <div className="h-4 w-16 bg-surface-200 rounded mb-1"></div>
+                        <div className="h-4 w-28 bg-surface-200 rounded"></div>
+                      </div>
+                      <div>
+                        <div className="h-4 w-20 bg-surface-200 rounded mb-1"></div>
+                        <div className="h-4 w-16 bg-surface-200 rounded"></div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="h-4 w-12 bg-surface-200 rounded mb-1"></div>
-                      <div className="h-4 w-24 bg-surface-200 rounded"></div>
-                    </div>
-                    <div>
-                      <div className="h-4 w-12 bg-surface-200 rounded mb-1"></div>
-                      <div className="h-4 w-20 bg-surface-200 rounded"></div>
-                    </div>
-                    <div>
-                      <div className="h-4 w-16 bg-surface-200 rounded mb-1"></div>
-                      <div className="h-4 w-28 bg-surface-200 rounded"></div>
-                    </div>
-                    <div>
-                      <div className="h-4 w-20 bg-surface-200 rounded mb-1"></div>
-                      <div className="h-4 w-16 bg-surface-200 rounded"></div>
-                    </div>
+                  <div className="ml-4">
+                    <div className="h-8 w-8 bg-surface-200 rounded"></div>
                   </div>
-                </div>
-                <div className="ml-4">
-                  <div className="h-8 w-8 bg-surface-200 rounded"></div>
                 </div>
               </div>
-            </div>
-          ))
-        ) : (
-          filteredTeachers.map((teacher: Teacher) => (
-            <div key={teacher.id} className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center mr-3">
-                        <span className="text-sm font-medium text-brand-800">
-                          {teacher.user.first_name[0]}
-                        </span>
+            ))
+          : filteredTeachers.map((teacher: Teacher) => (
+              <div
+                key={teacher.id}
+                className="bg-white rounded-2xl p-6 shadow-soft border border-surface-200"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center mr-3">
+                          <span className="text-sm font-medium text-brand-800">
+                            {teacher.user.first_name[0]}
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-surface-900">
+                          {teacher.user.first_name} {teacher.user.last_name}
+                        </h3>
                       </div>
-                      <h3 className="text-lg font-semibold text-surface-900">
-                        {teacher.user.first_name} {teacher.user.last_name}
-                      </h3>
+                      {getStatusBadge(teacher.is_active)}
                     </div>
-                    {getStatusBadge(teacher.is_active)}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-surface-500">Email</p>
-                      <p className="text-surface-900">{teacher.user.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-surface-500">Employee ID</p>
-                      <p className="text-surface-900">{teacher.employee_id || 'N/A'}</p>
-                    </div>
-                    {visibleColumns.slice(0, 2).map(col => (
-                      <div key={col.field_name}>
-                        <p className="text-surface-500">{col.label}</p>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-surface-500">Email</p>
+                        <p className="text-surface-900">{teacher.user.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-surface-500">Employee ID</p>
                         <p className="text-surface-900">
-                          {(() => {
-                            let value;
-                            if (teacher.dynamic_data && teacher.dynamic_data[col.field_name] !== undefined) {
-                              value = teacher.dynamic_data[col.field_name];
-                            } else if ((teacher as any)[col.field_name] !== undefined) {
-                              value = (teacher as any)[col.field_name];
-                            } else if (teacher.user && (teacher.user as any)[col.field_name] !== undefined) {
-                              value = (teacher.user as any)[col.field_name];
-                            } else {
-                              value = '-';
-                            }
-                            return String(value);
-                          })()}
+                          {teacher.employee_id || "N/A"}
                         </p>
                       </div>
-                    ))}
+                      {visibleColumns.slice(0, 2).map((col) => (
+                        <div key={col.field_name}>
+                          <p className="text-surface-500">{col.label}</p>
+                          <p className="text-surface-900">
+                            {(() => {
+                              let value;
+                              if (
+                                teacher.dynamic_data &&
+                                teacher.dynamic_data[col.field_name] !==
+                                  undefined
+                              ) {
+                                value = teacher.dynamic_data[col.field_name];
+                              } else if (
+                                (teacher as any)[col.field_name] !== undefined
+                              ) {
+                                value = (teacher as any)[col.field_name];
+                              } else if (
+                                teacher.user &&
+                                (teacher.user as any)[col.field_name] !==
+                                  undefined
+                              ) {
+                                value = (teacher.user as any)[col.field_name];
+                              } else {
+                                value = "-";
+                              }
+                              return String(value);
+                            })()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <button
+                      className="p-2 text-surface-400 hover:text-surface-600 rounded-lg hover:bg-surface-100"
+                      onClick={() =>
+                        setShowUserMenu(
+                          showUserMenu === teacher.id ? null : teacher.id
+                        )
+                      }
+                    >
+                      <EllipsisVerticalIcon className="w-5 h-5" />
+                    </button>
+
+                    {showUserMenu === teacher.id && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
+                        <button
+                          onClick={() => handleEditTeacher(teacher)}
+                          className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
+                        >
+                          <PencilIcon className="w-4 h-4 mr-2" />
+                          Edit
+                        </button>
+                        <button className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200">
+                          <EyeIcon className="w-4 h-4 mr-2" />
+                          View Details
+                        </button>
+
+                        {(user?.role === "super_admin" ||
+                          user?.role === "admin") && (
+                          <button
+                            onClick={() =>
+                              handleBecomeUser(teacher.user.id, "teacher")
+                            }
+                            className="w-full flex items-center px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 transition-colors duration-200 border-t border-gray-100"
+                          >
+                            <UserIcon className="w-4 h-4 mr-2" />
+                            Become Teacher
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteTeacher(teacher)}
+                          className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
+                        >
+                          <TrashIcon className="w-4 h-4 mr-2" />
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="ml-4">
-                  <button 
-                    className="p-2 text-surface-400 hover:text-surface-600 rounded-lg hover:bg-surface-100"
-                    onClick={() => setShowUserMenu(showUserMenu === teacher.id ? null : teacher.id)}
-                  >
-                    <EllipsisVerticalIcon className="w-5 h-5" />
-                  </button>
-                  
-                  {showUserMenu === teacher.id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-surface-200 py-2 z-50">
-                      <button
-                        onClick={() => handleEditTeacher(teacher)}
-                        className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200"
-                      >
-                        <PencilIcon className="w-4 h-4 mr-2" />
-                        Edit
-                      </button>
-                      <button className="w-full flex items-center px-4 py-2 text-sm text-surface-700 hover:bg-surface-100 transition-colors duration-200">
-                        <EyeIcon className="w-4 h-4 mr-2" />
-                        View Details
-                      </button>
-
-                      {(user?.role === 'super_admin' || user?.role === 'admin') && (
-                        <button
-                          onClick={() => handleBecomeUser(teacher.user.id, 'teacher')}
-                          className="w-full flex items-center px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 transition-colors duration-200 border-t border-gray-100"
-                        >
-                          <UserIcon className="w-4 h-4 mr-2" />
-                          Become Teacher
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDeleteTeacher(teacher)}
-                        className="w-full flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors duration-200"
-                      >
-                        <TrashIcon className="w-4 h-4 mr-2" />
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
               </div>
-            </div>
-          ))
-        )}
+            ))}
       </div>
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <button 
+          <button
             className={`px-3 py-2 text-sm font-medium rounded-lg border ${
-              (teachers as any)?.has_prev 
-                ? 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50' 
-                : 'text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed'
+              (teachers as any)?.has_prev
+                ? "text-surface-700 bg-white border-surface-300 hover:bg-surface-50"
+                : "text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed"
             }`}
             disabled={!(teachers as any)?.has_prev}
             onClick={() => setPage(page - 1)}
           >
             Previous
           </button>
-          
+
           {/* Page numbers */}
-          {Array.from({ length: Math.min(5, (teachers as any)?.pages || 1) }, (_, i) => {
-            const pageNum = i + 1;
-            const isCurrentPage = pageNum === ((teachers as any)?.page || 1);
-            return (
-              <button
-                key={pageNum}
-                className={`px-3 py-2 text-sm font-medium rounded-lg border ${
-                  isCurrentPage
-                    ? 'text-white bg-brand-600 border-brand-600'
-                    : 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50'
-                }`}
-                onClick={() => setPage(pageNum)}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
-          
-          <button 
+          {Array.from(
+            { length: Math.min(5, (teachers as any)?.pages || 1) },
+            (_, i) => {
+              const pageNum = i + 1;
+              const isCurrentPage = pageNum === ((teachers as any)?.page || 1);
+              return (
+                <button
+                  key={pageNum}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg border ${
+                    isCurrentPage
+                      ? "text-white bg-brand-600 border-brand-600"
+                      : "text-surface-700 bg-white border-surface-300 hover:bg-surface-50"
+                  }`}
+                  onClick={() => setPage(pageNum)}
+                >
+                  {pageNum}
+                </button>
+              );
+            }
+          )}
+
+          <button
             className={`px-3 py-2 text-sm font-medium rounded-lg border ${
-              (teachers as any)?.has_next 
-                ? 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50' 
-                : 'text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed'
+              (teachers as any)?.has_next
+                ? "text-surface-700 bg-white border-surface-300 hover:bg-surface-50"
+                : "text-surface-400 bg-surface-100 border-surface-200 cursor-not-allowed"
             }`}
             disabled={!(teachers as any)?.has_next}
             onClick={() => setPage(page + 1)}
@@ -853,10 +982,9 @@ const TeachersPage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-surface-900">
-          {selectedTeacher
-            ? `Edit Teacher - ${selectedTeacher.user.first_name} ${selectedTeacher.user.last_name}`
-            : 'Add New Teacher'
-          }
+                {selectedTeacher
+                  ? `Edit Teacher - ${selectedTeacher.user.first_name} ${selectedTeacher.user.last_name}`
+                  : "Add New Teacher"}
               </h3>
               <button
                 onClick={handleFormClose}
@@ -865,16 +993,20 @@ const TeachersPage: React.FC = () => {
                 <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
-            
-          {formSchema ? (
+
+            {formSchema ? (
               <TailwindFormRenderer
-              schema={formSchema}
-              onSubmit={handleFormSave}
-              initialData={selectedTeacher ? mapTeacherToFormData(selectedTeacher) : undefined}
-              onCancel={handleFormClose}
+                schema={formSchema}
+                onSubmit={handleFormSave}
+                initialData={
+                  selectedTeacher
+                    ? mapTeacherToFormData(selectedTeacher)
+                    : undefined
+                }
+                onCancel={handleFormClose}
                 isEditMode={!!selectedTeacher}
-            />
-          ) : (
+              />
+            ) : (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
               </div>
@@ -887,9 +1019,15 @@ const TeachersPage: React.FC = () => {
       {isDeleteDialogOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-surface-900 mb-4">Delete Teacher</h3>
+            <h3 className="text-lg font-semibold text-surface-900 mb-4">
+              Delete Teacher
+            </h3>
             <p className="text-surface-600 mb-6">
-              Are you sure you want to delete {teacherToDelete ? `${teacherToDelete.user.first_name} ${teacherToDelete.user.last_name}` : 'this teacher'}? This action cannot be undone.
+              Are you sure you want to delete{" "}
+              {teacherToDelete
+                ? `${teacherToDelete.user.first_name} ${teacherToDelete.user.last_name}`
+                : "this teacher"}
+              ? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
@@ -904,7 +1042,7 @@ const TeachersPage: React.FC = () => {
                 disabled={isDeletingTeacher}
                 className="px-4 py-2 text-sm font-medium text-white bg-error-600 border border-transparent rounded-lg hover:bg-error-700 focus:outline-none focus:ring-2 focus:ring-error-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isDeletingTeacher ? 'Deleting...' : 'Delete Teacher'}
+                {isDeletingTeacher ? "Deleting..." : "Delete Teacher"}
               </button>
             </div>
           </div>
